@@ -9,6 +9,7 @@ MBOOT_CHECKSUM     = -(MBOOT_HEADER_MAGIC + MBOOT_HEAD_FLAG)
 
 
         .code32
+        .align  0x4
         .section ".text", "ax"
         .long   MBOOT_HEADER_MAGIC
         .long   MBOOT_HEAD_FLAG
@@ -70,11 +71,13 @@ bs_die:
         
         
         .section ".data", "aw"
+        .align  0x4
 bugger_off_msg:
         .ascii  "Hello World!"
         .byte   0
         
         .section ".bss", "aw"
+        .align  0x4
 stack:
         .space 32768
 
