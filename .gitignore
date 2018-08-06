@@ -1,0 +1,5 @@
+*.o
+*/*.o
+floppy.img
+toyos_kernel
+*.kdev*
