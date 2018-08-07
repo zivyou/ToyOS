@@ -35,6 +35,13 @@ static inline uint16_t vga_entry(uint8_t data, uint8_t color){
     return ((uint16_t)data | (uint16_t)color<<8);
 }
 
+int screen_full(){
+    if (screen.cur_x >= VGA_WIDTH && screen.cur_y>=VGA_HEIGHT){
+        return 1;
+    }
+    return 0;
+}
+
 void terminal_init(){
     
     screen.cur_x = 0;
@@ -48,4 +55,46 @@ void terminal_init(){
         for (y=0; y<VGA_HEIGHT; y++){
             screen.terminal_buffer[screen.buffer_point++] = vga_entry(' ', screen.terminal_color);
         }
+}
+
+void terminal_scroll(int l){
+    if (l < 0){
+        /* scroll up l line: remove top l lines from screen */
+        uint16_t *temp_buffer = screen.terminal_buffer + (-l)*VGA_WIDTH;
+        int i = (-l)*VGA_WIDTH+1;
+        int j=0;
+        while (i < VGA_HEIGHT*VGA_WIDTH){
+            screen.terminal_buffer[j] = temp_buffer[i];
+            j++;
+            i++;
+        }
+        for (j=j+1; j<VGA_HEIGHT*VGA_WIDTH; j++){
+            screen.terminal_buffer[j] = vga_entry(' ', screen.terminal_color);
+        }
+        screen.cur_y = VGA_HEIGHT + l;
+        screen.cur_x = VGA_WIDTH;
+    }else{
+        /* emm.. seems scrolling down is not reasonable.. */
+    }
+}
+
+void terminal_put_char(char c){
+    if (screen_full()){
+        /* the scree is full, need to scroll */
+        terminal_scroll(-1);
+    }
+    screen.terminal_buffer[screen.cur_y*VGA_HEIGHT+screen.cur_x] = (screen.terminal_color<<8) | (uint16_t)c;
+    screen.cur_x++;
+    if (screen.cur_x >= VGA_WIDTH){
+        screen.cur_x = 0;
+        screen.cur_y ++;
+    }
+}
+
+void terminal_print(char *str){
+    char *s = str;
+    while (*s){
+        terminal_put_char(*s);
+        s++;
+    }
 }
