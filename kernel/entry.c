@@ -5,10 +5,10 @@
 int kern_entry(){
     terminal_init();
     int i=0;
-    while(i < 1000){
+    while(i < 800){
         terminal_print("hello world!");
         i++;
     }
-    terminal_scroll(-1);
+    //terminal_scroll(-1);
     return 0;
 }

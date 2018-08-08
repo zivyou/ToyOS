@@ -26,7 +26,7 @@ typedef struct terminal{
     uint8_t terminal_color;
     uint16_t* terminal_buffer;
     size_t terminal_space;
-    size_t buffer_point;
+    size_t cursor_pos;
 }terminal;
 
 static terminal screen;
@@ -44,16 +44,16 @@ int screen_full(){
 
 void terminal_init(){
     
-    screen.cur_x = 0;
-    screen.cur_y = 0;
+    screen.cur_x = 0; //[0, VGA_WIDTH)
+    screen.cur_y = 0; //[0, VGA_HEIGHT)
     screen.terminal_color = VGA_COLOR_LIGHT_GREY | VGA_COLOR_BLACK << 4;
     screen.terminal_buffer = (uint16_t*)0xB8000;
-    screen.buffer_point = 0;
+    screen.cursor_pos = 0;
     size_t x = 0;
     size_t y = 0;
     for (x=0; x<VGA_WIDTH; x++)
         for (y=0; y<VGA_HEIGHT; y++){
-            screen.terminal_buffer[screen.buffer_point++] = vga_entry(' ', screen.terminal_color);
+            screen.terminal_buffer[screen.cursor_pos++] = vga_entry(' ', screen.terminal_color);
         }
 }
 
@@ -61,14 +61,14 @@ void terminal_scroll(int l){
     if (l < 0){
         /* scroll up l line: remove top l lines from screen */
         uint16_t *temp_buffer = screen.terminal_buffer + (-l)*VGA_WIDTH;
-        int i = (-l)*VGA_WIDTH+1;
+        int i = (-l)*VGA_WIDTH;
         int j=0;
         while (i < VGA_HEIGHT*VGA_WIDTH){
             screen.terminal_buffer[j] = temp_buffer[i];
             j++;
             i++;
         }
-        for (j=j+1; j<VGA_HEIGHT*VGA_WIDTH; j++){
+        for (; j<VGA_HEIGHT*VGA_WIDTH; j++){
             screen.terminal_buffer[j] = vga_entry(' ', screen.terminal_color);
         }
         screen.cur_y = VGA_HEIGHT + l;
@@ -78,17 +78,26 @@ void terminal_scroll(int l){
     }
 }
 
+void move_cursor(){
+    screen.cursor_pos = screen.cur_y*VGA_WIDTH+screen.cur_x;
+    outb(0x3D4, 14);                        
+    outb(0x3D5, screen.cursor_pos >> 8);
+    outb(0x3D4, 15);
+    outb(0x3D5, screen.cursor_pos);
+}
+
 void terminal_put_char(char c){
-    if (screen_full()){
-        /* the scree is full, need to scroll */
-        terminal_scroll(-1);
-    }
-    screen.terminal_buffer[screen.cur_y*VGA_HEIGHT+screen.cur_x] = (screen.terminal_color<<8) | (uint16_t)c;
+    screen.terminal_buffer[screen.cur_y*VGA_WIDTH+screen.cur_x] = (screen.terminal_color<<8) | (uint16_t)c;
     screen.cur_x++;
     if (screen.cur_x >= VGA_WIDTH){
         screen.cur_x = 0;
         screen.cur_y ++;
     }
+    if (screen_full()){
+        /* the scree is full, need to scroll */
+        terminal_scroll(-1);
+    }
+    move_cursor();
 }
 
 void terminal_print(char *str){
