@@ -1,4 +1,5 @@
 #include "types.h"
+#include "common.h"
 
 enum vga_color {
     VGA_COLOR_BLACK = 0,
@@ -78,26 +79,46 @@ void terminal_scroll(int l){
     }
 }
 
-void move_cursor(){
-    screen.cursor_pos = screen.cur_y*VGA_WIDTH+screen.cur_x;
+void move_cursor(uint16_t x, uint16_t y){
+    screen.cursor_pos = y*VGA_WIDTH+x;
     outb(0x3D4, 14);                        
-    outb(0x3D5, screen.cursor_pos >> 8);
+    outb(0x3D5, (screen.cursor_pos >> 8)&0xFF);
     outb(0x3D4, 15);
-    outb(0x3D5, screen.cursor_pos);
+    outb(0x3D5, (screen.cursor_pos)&0xFF);
+    
 }
 
 void terminal_put_char(char c){
-    screen.terminal_buffer[screen.cur_y*VGA_WIDTH+screen.cur_x] = (screen.terminal_color<<8) | (uint16_t)c;
-    screen.cur_x++;
+    if (c == '\r'){
+        screen.cur_x = 0;
+    }else if (c == '\n'){
+        screen.cur_x = 0;
+        screen.cur_y++;
+    }else if (c == 0x08){
+        screen.cur_x--;
+    }else{
+        screen.terminal_buffer[screen.cur_y*VGA_WIDTH+screen.cur_x] = (screen.terminal_color<<8) | (uint16_t)c;
+        screen.cur_x++;
+    }
+    
     if (screen.cur_x >= VGA_WIDTH){
         screen.cur_x = 0;
         screen.cur_y ++;
+    }
+    
+    if (screen.cur_x < 0){
+        if (screen.cur_y > 0){
+            screen.cur_x = VGA_WIDTH;
+            screen.cur_y --;
+        }else{
+            screen.cur_x = screen.cur_y = 0;
+        }
     }
     if (screen_full()){
         /* the scree is full, need to scroll */
         terminal_scroll(-1);
     }
-    move_cursor();
+    move_cursor(screen.cur_x, screen.cur_y);
 }
 
 void terminal_print(char *str){

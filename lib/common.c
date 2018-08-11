@@ -14,7 +14,14 @@
 
 
  */
+#include "common.h"
+void outb(uint16_t addr, uint8_t data){
+    __asm__ __volatile__ ("outb %1, %0"::"dN"(addr), "a"(data));
+}
 
-void outb(){
-    
+
+uint8_t inb(uint16_t addr){
+    uint8_t data;
+    __asm__ __volatile__ ("inb %1, %0":"=r"(data):"dN"(addr));
+    return data;
 }
