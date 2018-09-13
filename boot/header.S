@@ -16,7 +16,8 @@ MBOOT_CHECKSUM     = -(MBOOT_HEADER_MAGIC + MBOOT_HEAD_FLAG)
         .long   MBOOT_CHECKSUM
         .global _start
         .extern kern_entry
-        .global glb_mboot_ptr
+        .extern gdt_init
+        .extern gp
 
 _start:
         movl    $STACK_TOP, %esp
@@ -32,7 +33,6 @@ clear:
         jnz     clear
         
         
-        /*movl    %ebx, (glb_mboot_ptr)*/
         xorl    %edi, %edi
         xorl    %esi, %esi
         xorl    %eax, %eax
@@ -55,7 +55,20 @@ msg_loop:
         jmp     msg_loop
 
        
-
+enable_protected_mode:
+        call    gdt_init
+        lgdt    (gp)
+        movl    %cr0, %eax
+        xor      $1,   %eax
+        movl    %eax, %cr0
+        
+        mov    $0x10, %ax
+        mov    %ax, %ds
+        mov    %ax, %es
+        mov    %ax, %fs
+        mov    %ax, %gs
+        mov    %ax, %ss
+        
 bs_die: 
         calll    kern_entry
         # invoke the BIOS reset code...
@@ -68,6 +81,7 @@ bs_die:
         # int 0x19 should never return.  In case it does anyway,
 
         ljmp    $0xf000,$0xfff0
+        
         
         
         .section ".data", "aw"
