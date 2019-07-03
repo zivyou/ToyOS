@@ -1,5 +1,5 @@
-#include "types.h"
-#include "common.h"
+#include <types.h>
+#include <common.h>
 
 enum vga_color {
     VGA_COLOR_BLACK = 0,

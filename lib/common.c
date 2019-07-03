@@ -14,8 +14,9 @@
 
 
  */
-#include "common.h"
+#include <common.h>
 void outb(uint16_t addr, uint8_t data){
+    /* N here stands for immediate num */
     __asm__ __volatile__ ("outb %1, %0"::"dN"(addr), "a"(data));
 }
 
