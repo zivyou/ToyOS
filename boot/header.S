@@ -51,25 +51,27 @@ msg_loop:
         movl    $COLOR, (%edi)
         inc     %edi
         andb    %al, %al
-        jz      bs_die
+        jz      entry
         jmp     msg_loop
+                
+        
+entry:  
 
-       
-enable_protected_mode:
-        call    gdt_init
-        lgdt    (gp)
         movl    %cr0, %eax
-        xor      $1,   %eax
+        or      $1,   %eax
         movl    %eax, %cr0
         
-        mov    $0x10, %ax
-        mov    %ax, %ds
-        mov    %ax, %es
-        mov    %ax, %fs
-        mov    %ax, %gs
-        mov    %ax, %ss
+        ljmp    $0x08, $1f
+1:
         
-bs_die: 
+        movw         $0x0010,  %ax
+        movw         %ax,    %ds
+        movw         %ax,    %es
+        movw         %ax,    %fs
+        movw         %ax,    %gs
+        movw         %ax,    %ss
+        
+        
         calll    kern_entry
         # invoke the BIOS reset code...
         hlt

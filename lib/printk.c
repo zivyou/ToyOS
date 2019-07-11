@@ -23,6 +23,34 @@ void copy_dec(char *buffer, int *pos, int data){
     *pos = j;
 };
 
+void copy_hex(char *buffer, int *pos, int data){
+    char tmp[9] = {0, };
+    
+    int i=0; int j=*pos;
+    while (data/16){
+        if (data % 16 < 10){
+            tmp[i] = data % 16 + '0';
+        }else if (data % 16){
+            tmp[i] = data % 16 - 10 + 'a'; 
+        }
+        
+        data = data/16;
+    }
+    
+    if (data){
+        if (data < 10)
+            tmp[i] = data + '0';
+        else
+            tmp[i] = data - 10 + 'a';
+    }
+    
+    for (;i >= 0; i--){
+        buffer[j++] = tmp[i];
+    }
+    
+    *pos = j;
+}
+
 int printk(const char *format, ...){
     va_list args = 0;
     va_start(args, format);
@@ -51,6 +79,11 @@ int printk(const char *format, ...){
                 case 'c':
                     ch = va_arg(args, char);
                     buffer[i++] = ch;
+                    c+=2;
+                    break;
+                case 'x':
+                    arg = va_arg(args, int);
+                    copy_hex(buffer, &i, arg);
                     c+=2;
                     break;
                 default:

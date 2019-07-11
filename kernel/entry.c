@@ -3,12 +3,20 @@
 #include <printk.h>
 
 
+extern void gdt_init();
+
 int kern_entry(){
+    gdt_init();
+    
+    
     terminal_init();
-    printk("%%%d%s\n", 100, "test");
-    int *p = (int *)0x100000001;
-    *p = 0;
-    int a = 10;
-    printk("%d %d", *p, a);
+
+    printk("hello world!");
+    
+    int gdt=0;
+    __asm__("sgdt %0":"=m"(gdt)::);
+    printk("%x\n", gdt);
+    
+    
     return 0;
 }

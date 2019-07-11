@@ -1,5 +1,6 @@
 #include <types.h>
 
+
 typedef struct gdt_entry{
     uint16_t limit_low; // limit: 0-15
     uint16_t base_low; //Base: 0-15
@@ -15,17 +16,17 @@ typedef struct gdt_entry{
     uint8_t          g:1;   //g=0: segment length=1MB; g=1: segment length=4GB
     uint8_t base_high; //base: 24-31
    
-}gdt_entry __attribute__((packed));
+}__attribute__((packed)) gdt_entry ;
 
 typedef struct gdt_ptr{
     uint16_t limit;
     uint32_t base;
-}gdt_prt __attribute__((packed));
+}__attribute__((packed)) gdt_prt ;
 
 static struct gdt_entry gdt[3];
 struct gdt_ptr gp;
 
-void set_entry(int index, uint32_t base, uint32_t limit, uint8_t type, uint8_t s, uint8_t dpl, uint8_t p, uint8_t avl, uint8_t o, uint8_t b, uint8_t g){
+void set_gdt_entry(int index, uint32_t base, uint32_t limit, uint8_t type, uint8_t s, uint8_t dpl, uint8_t p, uint8_t avl, uint8_t o, uint8_t b, uint8_t g){
     gdt[index].type = type & 0x0F;
     gdt[index].s = s;
     gdt[index].dpl = dpl & 0x03;
@@ -42,10 +43,13 @@ void set_entry(int index, uint32_t base, uint32_t limit, uint8_t type, uint8_t s
 }
 
 
+extern  void gdt_flush(uint32_t);
 void gdt_init(){
     gp.base = &gdt;
     gp.limit = sizeof(gdt)-1;
-    set_entry(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-    set_entry(1, 0, 0xFFFFFFFF, 0x0A, 1, 0, 1, 0, 0, 1, 1); //code segment;
-    set_entry(2, 0, 0xFFFFFFFF, 0x01, 1, 0, 1, 0, 0, 1, 1); //data segment;
+    set_gdt_entry(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    set_gdt_entry(1, 0, 0xFFFFFFFF, 0x0A, 1, 0, 1, 0, 0, 1, 1); //code segment;
+    set_gdt_entry(2, 0, 0xFFFFFFFF, 0x01, 1, 0, 1, 0, 0, 1, 1); //data segment;
+    
+    gdt_flush((uint32_t)&gp);
 }
