@@ -1,0 +1,5 @@
+.gitignore
+*.o
+toyos_kernel
+*.kdev*
+*.img

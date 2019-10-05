@@ -4,10 +4,11 @@
 
 
 extern void gdt_init();
+extern void idt_init();
 
 int kern_entry(){
     gdt_init();
-    
+    idt_init();
     
     terminal_init();
 
