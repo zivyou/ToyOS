@@ -14,12 +14,12 @@ typedef struct idt_entry{
     */
     uint8_t     flag;
     uint16_t    offset_higherbits;
-}idt_entry __attribute__((packed));
+} __attribute__((packed)) idt_entry;
 
 typedef struct idts_ptr_t{
     uint16_t    limit;
     uint32_t    base;
-}idts_ptr_t __attribute__((packed));
+} __attribute__((packed)) idts_ptr_t;
 
 struct idt_entry idts[256] = {0, };
 struct idts_ptr_t idts_ptr;

@@ -26,3 +26,7 @@ uint8_t inb(uint16_t addr){
     __asm__ __volatile__ ("inb %1, %0":"=r"(data):"dN"(addr));
     return data;
 }
+
+void hlt(){
+    __asm__ __volatile__ ("hlt;");
+}

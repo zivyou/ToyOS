@@ -57,7 +57,7 @@ int printk(const char *format, ...){
     static char buffer[80*50];
     
 
-    char *c = format;
+    char *c = (char *)format;
     int i=0;
     while (*c){
         if (*c == '%'){

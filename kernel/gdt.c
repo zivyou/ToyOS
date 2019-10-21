@@ -45,7 +45,7 @@ void set_gdt_entry(int index, uint32_t base, uint32_t limit, uint8_t type, uint8
 
 extern  void gdt_flush(uint32_t);
 void gdt_init(){
-    gp.base = &gdt;
+    gp.base = (uint32_t)&gdt;
     gp.limit = sizeof(gdt)-1;
     set_gdt_entry(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     set_gdt_entry(1, 0, 0xFFFFFFFF, 0x0A, 1, 0, 1, 0, 0, 1, 1); //code segment;
