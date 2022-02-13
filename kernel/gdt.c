@@ -23,7 +23,7 @@ typedef struct gdt_ptr{
     uint32_t base;
 }__attribute__((packed)) gdt_prt ;
 
-static struct gdt_entry gdt[3];
+static struct gdt_entry gdt[4];
 struct gdt_ptr gp;
 
 void set_gdt_entry(int index, uint32_t base, uint32_t limit, uint8_t type, uint8_t s, uint8_t dpl, uint8_t p, uint8_t avl, uint8_t o, uint8_t b, uint8_t g){
@@ -46,7 +46,7 @@ void set_gdt_entry(int index, uint32_t base, uint32_t limit, uint8_t type, uint8
 extern  void gdt_flush(uint32_t);
 void gdt_init(){
     gp.base = (uint32_t)&gdt;
-    gp.limit = sizeof(gdt)-1;
+    gp.limit = (uint16_t)(sizeof(gdt)-1);
     set_gdt_entry(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
     set_gdt_entry(1, 0, 0xFFFFFFFF, 0x0A, 1, 0, 1, 0, 0, 1, 1); //code segment;
     set_gdt_entry(2, 0, 0xFFFFFFFF, 0x01, 1, 0, 1, 0, 0, 1, 1); //data segment;

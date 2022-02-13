@@ -32,18 +32,18 @@ link:
 	
 .PHONY:update_image
 update_image:
-	sudo mount floppy.img /mnt/kernel
+	sudo -S mount floppy.img /mnt/kernel
 	sudo cp $(KERN_NAME) /mnt/kernel/$(KERN_NAME)
 	sleep 1
 	sudo umount /mnt/kernel
 
 .PHONY:mount_image
 mount_image:
-	sudo mount floppy.img /mnt/kernel
+	sudo -S mount floppy.img /mnt/kernel
 
 .PHONY:umount_image
 umount_image:
-	sudo umount /mnt/kernel
+	sudo -S umount /mnt/kernel
 
 .PHONY:qemu
 qemu:

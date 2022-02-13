@@ -4,5 +4,5 @@
 
 void terminal_init();
 void terminal_scroll(int l);
-
+void terminal_print(char *);
 #endif
