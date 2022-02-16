@@ -10,11 +10,11 @@ extern void intr_init();
 
 int kern_entry(){
     gdt_init();
-//    idt_init();
+    idt_init();
 //    intr_init();
     terminal_init();
 
-    printk("hello world!");
+    printk("hello world!\n");
     /*
     int gdt=0;
     __asm__("sgdt %0":"=m"(gdt)::);

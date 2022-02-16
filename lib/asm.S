@@ -1,6 +1,7 @@
     .code32
     .align  0x4
     .global     gdt_flush
+    .global     tss_flush
     .section .text
     
     
@@ -18,6 +19,11 @@ gdt_flush:
     jmp $0x08,  $flush
 
 flush:
+    ret
+
+tss_flush:
+    mov $0x18,  %ax   // 我们在tss之前设置了3个gdt_entry，每个entry占8个字节，因此在计算的时候就是偏移了00011000b=0x18个字节
+    ltr %ax
     ret
     
 
