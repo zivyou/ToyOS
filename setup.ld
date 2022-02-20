@@ -15,6 +15,7 @@ SECTIONS
         .text :
         {
             code = .;
+            *(.multiboot)
             *(.text)            
             *(.rodata)
             . = ALIGN(4096); 

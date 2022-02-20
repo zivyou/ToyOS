@@ -18,7 +18,7 @@ CC=gcc
 LD=ld
 AS=as
 
-all:  $(S_OBJECT) ${C_OBJECT}  link update_image
+all:  $(S_OBJECT) ${C_OBJECT}  link iso
 
 .S.o:
 	${AS} ${GCC_S_OPTION} $< -o $@
@@ -29,30 +29,22 @@ all:  $(S_OBJECT) ${C_OBJECT}  link update_image
 
 link: 
 	${LD} ${LD_OPTION} ${C_OBJECT} ${S_OBJECT} -o ${KERN_NAME}
-	
-.PHONY:update_image
-update_image:
-	sudo -S mount floppy.img /mnt/kernel
-	sudo cp $(KERN_NAME) /mnt/kernel/$(KERN_NAME)
-	sleep 1
-	sudo umount /mnt/kernel
-
-.PHONY:mount_image
-mount_image:
-	sudo -S mount floppy.img /mnt/kernel
-
-.PHONY:umount_image
-umount_image:
-	sudo -S umount /mnt/kernel
 
 .PHONY:qemu
 qemu:
-	qemu-system-i386  -s -monitor stdio -fda floppy.img -boot a
+	## qemu-system-i386  -s -monitor stdio -fda floppy.img -boot a
+	## qemu-system-i386  -s -monitor stdio -cdrom toyos_kernel.iso -boot a
+	qemu-system-i386  -s -monitor stdio -kernel toyos_kernel -boot a
+check_boot:
+	grub-file --is-x86-multiboot toyos_kernel
+	cp toyos_kernel iso/boot/
 
-.PHONY:copy
-copy:
-	cp ${KERN_NAME} /boot/
-	cp initrd /boot/
+iso: check_boot link
+	grub-mkrescue -o toyos_kernel.iso ./iso
+
+iso_qemu:
+	qemu-system-i386  -s -monitor stdio -cdrom toyos_kernel.iso -boot a
+
 clean:
 	rm ${S_OBJECT}
 	rm ${C_OBJECT}

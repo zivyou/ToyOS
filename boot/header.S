@@ -1,5 +1,3 @@
-#include "header.h"
-
 MBOOT_HEADER_MAGIC = 0x1BADB002
 MBOOT_PAGE_ALIGN   = 1<<0
 MBOOT_MEM_INFO     = 1<<1
@@ -9,11 +7,14 @@ MBOOT_CHECKSUM     = -(MBOOT_HEADER_MAGIC + MBOOT_HEAD_FLAG)
 
 
         .code32
+        .section ".multiboot"
         .align  0x4
-        .section ".text", "ax"
         .long   MBOOT_HEADER_MAGIC
         .long   MBOOT_HEAD_FLAG
         .long   MBOOT_CHECKSUM
+
+        .section ".text", "ax"
+        .align 16
         .global _start
         .extern kern_entry
         .extern gdt_init

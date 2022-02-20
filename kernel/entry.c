@@ -11,7 +11,6 @@ extern void intr_init();
 int kern_entry(){
     gdt_init();
     idt_init();
-//    intr_init();
     terminal_init();
 
     printk("hello world!\n");
