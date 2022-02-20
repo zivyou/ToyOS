@@ -14,15 +14,10 @@ int kern_entry(){
     terminal_init();
 
     printk("hello world!\n");
-    /*
-    int gdt=0;
-    __asm__("sgdt %0":"=m"(gdt)::);
-    printk("%x\n", gdt);
-    */
 
     int int0 = 0;
     printk("%s\n", "welcome!");
-
+    int b = 10/int0;
     hlt();
     return 0;
 }
