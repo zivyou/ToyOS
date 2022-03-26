@@ -8,7 +8,7 @@ S_OBJECT=$(patsubst %.S, %.o, ${S_FILES})
 
 INCLUDE_DIR=include
 
-GCC_C_OPTION=-m32 -c -g -nostdlib -nostdinc -fno-stack-protector -I ${INCLUDE_DIR} -Werror -fno-builtin -O0
+GCC_C_OPTION= -std=c99 -m32 -c -g -nostdlib -nostdinc -fno-stack-protector -I ${INCLUDE_DIR} -Wall -fno-builtin -O0 -ggdb
 GCC_S_OPTION=--32 -g --gstabs -I ${INCLUDE_DIR} --warn
 LD_OPTION=-T setup.ld -m elf_i386 -nostdlib
 
@@ -34,7 +34,7 @@ link:
 qemu:
 	## qemu-system-i386  -s -monitor stdio -fda floppy.img -boot a
 	## qemu-system-i386  -s -monitor stdio -cdrom toyos_kernel.iso -boot a
-	qemu-system-i386  -s -monitor stdio -kernel toyos_kernel -boot a
+	qemu-system-i386  -s -monitor stdio -kernel toyos_kernel -boot a -d cpu
 check_boot:
 	grub-file --is-x86-multiboot toyos_kernel
 	cp toyos_kernel iso/boot/

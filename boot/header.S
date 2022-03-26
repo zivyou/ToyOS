@@ -21,7 +21,10 @@ MBOOT_CHECKSUM     = -(MBOOT_HEADER_MAGIC + MBOOT_HEAD_FLAG)
         .extern gp
 
 _start:
-        movl    $STACK_TOP, %esp
+        movl    $STACK_TOP, %ebp
+        movl    %ebp, %esp
+        andl    $0x0FFFFFFF0, %esp
+
 VGA_ADDR        = 0xB8000
 COLOR           = 0x61
 
@@ -56,13 +59,14 @@ msg_loop:
         jmp     msg_loop
                 
         
-entry:  
+entry:
+        inb     $0x92, %al
+        or      $0x10, %al
+        outb    %al,   $0x92
 
         movl    %cr0, %eax
-        or      $1,   %eax
+        or    $1,   %eax
         movl    %eax, %cr0
-        
-        ljmp    $0x08, $1f
 1:
         
         movw         $0x0010,  %ax
@@ -82,7 +86,7 @@ entry:
         .word   0x00eb 是一条指令，这条指令的作用仅仅是让IP寄存器+2. 之所以加这么一条看似无意义的指令，是
         在等CPU的时钟周期。因为8259A级联CPU在一个CPU时钟周期内无法完成置位操作。
         */
-
+/*
         mov     $0x11, %al
         out     %al, $0x20
         .word   0x00eb, 0x00eb
@@ -113,8 +117,8 @@ entry:
         out     %al, $0x21
         .word   0x00eb, 0x00eb
         out     %al, $0xa1
-
-        calll    kern_entry
+*/
+        call    kern_entry
         # invoke the BIOS reset code...
         hlt
 
@@ -126,11 +130,11 @@ entry:
 bugger_off_msg:
         .ascii  "Hello World!"
         .byte   0
-        
+
         .section ".bss", "aw"
         .align  0x4
 stack:
-        .space 32768
+        .space 65536
 
 STACK_TOP:
 

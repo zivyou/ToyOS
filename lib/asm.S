@@ -16,15 +16,15 @@ gdt_flush:
     mov %ax,    %fs
     mov %ax,    %gs
     # mov %ax,    %ss # 测试时发现直接给SS寄存器赋值会导致所有的寄存器数值混沦，不清楚是不是qemu的CPU特性
-    jmp $0x08,  $flush
+    ljmp $0x08,  $flush
 
 flush:
     ret
 
 tss_flush:
-    mov $0x18,  %ax   # 我们在tss之前设置了3个gdt_entry，每个entry占8个字节，因此在计算的时候就是偏移了00011000b=0x18个字节
+    mov $0x28,  %eax   # 我们在tss之前设置了3个gdt_entry，每个entry占8个字节，因此在计算的时候就是偏移了00011000b=0x18个字节
     ltr %ax
-    ret
+    ljmp $0x08, $flush
     
 
     

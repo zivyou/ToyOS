@@ -1,11 +1,19 @@
 #include <printk.h>
 #include <terminal.h>
 
-void copy_dec(char *buffer, int *pos, int data){
-    char tmp[14];
-    int i=0;
-    for (i=0; i<14; i++)
+void copy_dec(char *buffer, int32_t *pos, int32_t data){
+    terminal_print("????????????????");
+    if (data == 0) {
+        buffer[*pos] = '0';
+        (*pos)++;
+        return;
+    }
+    char tmp[32];
+    int i;
+    for (i=0; i<32; i++) {
         tmp[i] = 0;
+    }
+
     i=0;
     int j = *pos;
     while (data / 10){
@@ -16,25 +24,30 @@ void copy_dec(char *buffer, int *pos, int data){
     if (data) {
         tmp[i] = data + '0';
     }
-    
     for (;i >= 0; i--){
         buffer[j++] = tmp[i];
     }
-    
     *pos = j;
 };
 
-void copy_hex(char *buffer, int *pos, int data){
-    char tmp[9] = {0, };
-    
+void copy_hex(char *buffer, int32_t *pos, int32_t data){
+    if (data == 0) {
+        buffer[*pos] = '0';
+        (*pos)++;
+        return;
+    }
+    char tmp[32] = {0, };
+    for (int k=0; k<32; k++) tmp[k] = 0;
     int i=0; int j=*pos;
     while (data/16){
         if (data % 16 < 10){
             tmp[i] = data % 16 + '0';
-        }else if (data % 16){
+        }else if (data % 16 >= 10){
             tmp[i] = data % 16 - 10 + 'a'; 
+        } else {
+            // do nothing
         }
-        
+        i++;
         data = data/16;
     }
     
@@ -59,13 +72,13 @@ int printk(const char *format, ...){
     
 
     char *c = (char *)format;
-    int i=0;
+    int32_t i=0;
     while (*c){
         if (*c == '%'){
             int arg; char *tmp; char ch;
             switch(*(c+1)){
                 case 'd':
-                    arg = va_arg(args, int);
+                    arg = va_arg(args, int32_t);
                     copy_dec(buffer, &i, arg);
                     c+=2;
                     break;
@@ -83,7 +96,7 @@ int printk(const char *format, ...){
                     c+=2;
                     break;
                 case 'x':
-                    arg = va_arg(args, int);
+                    arg = va_arg(args, int32_t);
                     copy_hex(buffer, &i, arg);
                     c+=2;
                     break;
