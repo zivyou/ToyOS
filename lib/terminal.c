@@ -1,6 +1,18 @@
 #include <types.h>
 #include <common.h>
 
+
+/**
+ *                ------------------------> x
+ *                |
+ *                |
+ *                |
+ *                |
+ *                |
+ *                |
+ *                V y
+ */
+
 enum vga_color {
     VGA_COLOR_BLACK = 0,
     VGA_COLOR_BLUE = 1,        
@@ -37,7 +49,7 @@ static inline uint16_t vga_entry(uint8_t data, uint8_t color){
 }
 
 int screen_full(){
-    if (screen.cur_x >= VGA_WIDTH && screen.cur_y>=VGA_HEIGHT){
+    if (screen.cur_x >= VGA_WIDTH-1 && screen.cur_y>=VGA_HEIGHT-1){
         return 1;
     }
     return 0;
@@ -116,7 +128,7 @@ void terminal_put_char(char c){
     }
     if (screen_full()){
         /* the scree is full, need to scroll */
-        terminal_scroll(-1);
+         terminal_scroll(-1);
     }
     move_cursor(screen.cur_x, screen.cur_y);
 }

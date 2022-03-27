@@ -24,11 +24,12 @@ isr_\num&:
     .global irq_handler_\num
 irq_handler_\num&:
     pushl $\num
-    jmp irq_common_stub
+    jmp common_irq
 .endm
 
 
 common_isr:
+    cli
     pushl %eax
     pushl %ecx
     pushl %edx
@@ -58,91 +59,6 @@ common_isr:
     popl %ecx
     popl %eax
     addl $8, %esp # 清理err_codes, int_no
-    iret
-
-no_err_code:
-    # pushl %eax
-    xchgl %eax, (%esp)
-    pushl %ebx
-    pushl %ecx
-    pushl %edx
-    pushl %esi
-    pushl %edi
-    pushl %ebp
-    pushl %ds
-    pushl %es
-    pushl %fs
-    pushl %eax
-    leal 48(%esp), %edx
-    pushl %edx
-
-    mov $0x10, %dx
-    mov %dx, %ds
-    mov %dx, %es
-    mov %dx, %fs
-    mov %dx, %gs
-    mov %dx, %ss
-
-    call stack_dump
-
-
-    addl $8, %esp # remove these two params of stack_dump()
-    popl %fs
-    popl %es
-    popl %ds
-    mov %ds, %dx
-    mov %dx, %gs
-    mov %dx, %ss
-    popl %ebp
-    popl %edi
-    popl %esi
-    popl %esi
-    popl %edx
-    popl %ecx
-    popl %ebx
-    popl %eax
-    iret
-
-err_code:
-    pushl %eax
-    pushl %ebx
-    pushl %ecx
-    pushl %edx
-    pushl %esi
-    pushl %edi
-    pushl %ebp
-    pushl %ds
-    pushl %es
-    pushl %fs
-    pushl $0
-    lea  48(%esp), %edx
-    push %edx
-
-    mov $0x10, %dx
-    mov %dx, %ds
-    mov %dx, %es
-    mov %dx, %fs
-    mov %dx, %gs
-    mov %dx, %ss
-
-    call stack_dump
-
-
-    addl $8, %esp  # remove these two params of stack_dump()
-    popl %fs
-    popl %es
-    popl %ds
-    mov %ds, %dx
-    mov %dx, %gs
-    mov %dx, %ss
-    popl %ebp
-    popl %edi
-    popl %esi
-    popl %esi
-    popl %edx
-    popl %ecx
-    popl %ebx
-    popl %eax
     iret
 
 ISR_ERRCODE 8   # 双重故障
@@ -183,36 +99,37 @@ ISR_NOERRCODE 31
 ISR_NOERRCODE 255
 
     .extern irq_handler
-irq_common_stub:
-    pushal
-    pushl %ds
-    pushl %es
-    pushl %fs
-
-    mov %ds, %ax
-    push %ax
-    push $0
-
-    mov $0x10, %ax
-    mov %ax, %ds
-    mov %ax, %es
-    mov %ax, %fs
-    mov %ax, %gs
-    mov %ax, %ss
-
-    movl 48(%esp), %eax
+common_irq:
+    cli
     pushl %eax
+    pushl %ecx
+    pushl %edx
+    pushl %ebx
+    pushl %esp
+    pushl %ebp
+    pushl %esi
+    push  $0
+    push  %ds
+
+    pushl %esp
     call irq_handler
     addl $4, %esp
 
-    pop %bx
-    pop %bx
+    popl %ebx
     mov %bx, %ds
-    popl %fs
-    popl %es
-    popl %ds
-    popal
-    addl $8, %esp
+    mov %bx, %ss
+    mov %bx, %es
+    mov %bx, %fs
+    mov %bx, %gs
+
+    popl %esi
+    popl %ebp
+    popl %esp
+    popl %ebx
+    popl %edx
+    popl %ecx
+    popl %eax
+    addl $8, %esp # 清理err_codes, int_no
     iret
 
 

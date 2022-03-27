@@ -8,18 +8,16 @@ extern void gdt_init();
 extern void idt_init();
 extern void intr_init();
 
-int kern_entry(int*, int*)__attribute__((cdecl));
-
-int kern_entry(int* num1, int* num2){
+_Noreturn int kern_entry(){
     terminal_init();
+    printk("hello world!\n");
+    int int0 = 0;
+    printk("welcome!\n");
     gdt_init();
     idt_init();
-    (*num1)++; (*num2)++;
-    printk("hello world!\n");
 
-    int int0 = 0;
-    printk("%s, %d\n", "welcome!", *num1);
-    hlt();
-
+    int0++;
+    while (1) hlt();
+    __asm__ volatile ("sti");
     return 0;
 }

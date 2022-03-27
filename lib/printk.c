@@ -2,7 +2,6 @@
 #include <terminal.h>
 
 void copy_dec(char *buffer, int32_t *pos, int32_t data){
-    terminal_print("????????????????");
     if (data == 0) {
         buffer[*pos] = '0';
         (*pos)++;
@@ -68,7 +67,7 @@ void copy_hex(char *buffer, int32_t *pos, int32_t data){
 int printk(const char *format, ...){
     va_list args = 0;
     va_start(args, format);
-    static char buffer[80*50];
+    static char buffer[80*25];
     
 
     char *c = (char *)format;
@@ -76,6 +75,7 @@ int printk(const char *format, ...){
     while (*c){
         if (*c == '%'){
             int arg; char *tmp; char ch;
+            if (*(c+1) == 0) break;
             switch(*(c+1)){
                 case 'd':
                     arg = va_arg(args, int32_t);
@@ -99,6 +99,8 @@ int printk(const char *format, ...){
                     arg = va_arg(args, int32_t);
                     copy_hex(buffer, &i, arg);
                     c+=2;
+                    break;
+                case 0:
                     break;
                 default:
                     buffer[i++] = *c;

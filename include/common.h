@@ -4,4 +4,6 @@
 
 void outb(uint16_t addr, uint8_t data);
 void hlt(void);
+void enable_interrput();
+void disable_interrupt();
 #endif

@@ -28,5 +28,13 @@ uint8_t inb(uint16_t addr){
 }
 
 void hlt(){
-    __asm__ __volatile__ ("hlt;");
+    __asm__ __volatile__ ("hlt");
+}
+
+void enable_interrput() {
+    __asm__ __volatile__("sti");
+}
+
+void disable_interrupt() {
+    __asm__ __volatile__("cli");
 }
