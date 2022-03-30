@@ -1,7 +1,7 @@
 1. a printk lib, supporting printing strings and numbers(both decimal and hex);
-> 2. outputing to a serial port;
-> 3. (ongoing) a simple working and reliable interrupt/exception handling system;
-> 4. memory map design, protected mode;
+2. outputing to a serial port;
+3. a simple working and reliable interrupt/exception handling system;
+4. memory map design, protected mode;
 5. setup interruption/exception
-6. memory management(malloc, slab, buddy-system...);
+> 6. (ongoing) memory management(malloc, slab, buddy-system...);
 7. 

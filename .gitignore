@@ -4,3 +4,6 @@ toyos_kernel
 *.kdev*
 *.img
 floppy.img
+*.iso
+*.log
+.idea/**

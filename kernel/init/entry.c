@@ -1,7 +1,7 @@
-#include <types.h>
-#include <terminal.h>
-#include <printk.h>
-#include <common.h>
+#include "types.h"
+#include "terminal.h"
+#include "printk.h"
+#include "common.h"
 
 
 extern void gdt_init();
