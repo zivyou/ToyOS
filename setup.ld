@@ -12,25 +12,24 @@ phys = 0x00100000;
 SECTIONS
 {
         . = 0x100000;
-        .text :
+        .init.text :
         {
             code = .;
             *(.multiboot)
-            *(.text)            
-            *(.rodata)
+            *(.init.text)
             . = ALIGN(4096); 
         }
-        .data : AT(phys + (data - code))
+        .init.data : AT(phys + (data - code))
         { 
             data = .;
-            *(.data)
+            *(.init.data)
 
             . = ALIGN(4096); 
         }
-        .bss : AT(phys + bss - code)
+        .init.bss : AT(phys + bss - code)
         { 
             bss = .;
-            *(.bss)
+            *(.init.bss)
             . = ALIGN(4096); 
         }
         .stab :

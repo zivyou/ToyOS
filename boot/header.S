@@ -13,7 +13,7 @@ MBOOT_CHECKSUM     = -(MBOOT_HEADER_MAGIC + MBOOT_HEAD_FLAG)
         .long   MBOOT_HEAD_FLAG
         .long   MBOOT_CHECKSUM
 
-        .section ".text", "ax"
+        .section ".init.text", "ax"
         .align 16
         .global _start
         .extern kern_entry
@@ -85,13 +85,13 @@ entry:
         
         
         
-        .section ".data", "aw"
+        .section ".init.data", "aw"
         .align  0x4
 bugger_off_msg:
         .ascii  "Hello World!"
         .byte   0
 
-        .section ".bss", "aw"
+        .section ".init.bss", "aw"
         .align  0x4
 stack:
         .space 65536
