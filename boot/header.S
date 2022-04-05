@@ -77,47 +77,7 @@ entry:
         movw         %ax,    %ss
         
         cli
-        /*
-        8259A重新编程。
-        在intel的设计中，为硬件中断保留的中断号为int 0x20-0x2F.但是BIOS没有遵从这个设定，BIOS的硬件中断号
-        设定为0x08-0x0F。因此这里需要重新设定8259A芯片。
-        下面这段代码是从linux-0.12中copy过来的，其中涉及到8259A芯片的电路涉及原理，包括级联、上升沿触发方式、
-        CPU时钟周期等，实在太过晦涩。
-        .word   0x00eb 是一条指令，这条指令的作用仅仅是让IP寄存器+2. 之所以加这么一条看似无意义的指令，是
-        在等CPU的时钟周期。因为8259A级联CPU在一个CPU时钟周期内无法完成置位操作。
-        */
-/*
-        mov     $0x11, %al
-        out     %al, $0x20
-        .word   0x00eb, 0x00eb
-        out     %al, $0xa0
-        .word   0x00eb, 0x00eb
 
-        mov     $0x20, %al
-        out     %al, $0x21
-        .word   0x00eb, 0x00eb
-        mov     $0x28, %al
-        out     %al, $0xa1
-        .word   0x00eb, 0x00eb
-        mov     $0x04, %al
-        out     %al, $0x21
-
-        .word   0x00eb, 0x00eb
-        mov     $0x02, %al
-        out     %al, $0xa1
-
-        .word   0x00eb, 0x00eb
-        mov     $0x01, %al
-        out     %al, $0x21
-
-        .word   0x00eb, 0x00eb
-        out     %al, $0xa1
-        .word   0x00eb, 0x00eb
-        mov     $0xff, %al
-        out     %al, $0x21
-        .word   0x00eb, 0x00eb
-        out     %al, $0xa1
-*/
         call    kern_entry
         # invoke the BIOS reset code...
         hlt

@@ -2,6 +2,7 @@
 #include "terminal.h"
 #include "printk.h"
 #include "common.h"
+#include "mm/mm.h"
 
 
 extern void gdt_init();
@@ -15,6 +16,7 @@ _Noreturn int kern_entry(){
     printk("welcome!\n");
     gdt_init();
     idt_init();
+    mm_init();
 
     int0++;
     while (1) hlt();
