@@ -49,7 +49,7 @@ static inline uint16_t vga_entry(uint8_t data, uint8_t color){
 }
 
 int screen_full(){
-    if (screen.cur_x >= VGA_WIDTH-1 && screen.cur_y>=VGA_HEIGHT-1){
+    if (/*screen.cur_x > VGA_WIDTH-1 &&*/ screen.cur_y>VGA_HEIGHT-1){
         return 1;
     }
     return 0;
@@ -85,7 +85,7 @@ void terminal_scroll(int l){
             screen.terminal_buffer[j] = vga_entry(' ', screen.terminal_color);
         }
         screen.cur_y = VGA_HEIGHT + l;
-        screen.cur_x = VGA_WIDTH;
+        screen.cur_x = 0;
     }else{
         /* emm.. seems scrolling down is not reasonable.. */
     }
