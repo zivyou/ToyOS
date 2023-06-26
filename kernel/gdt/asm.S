@@ -22,7 +22,7 @@ flush:
     ret
 
 tss_flush:
-    mov $0x28,  %eax   # 我们在tss之前设置了3个gdt_entry，每个entry占8个字节，因此在计算的时候就是偏移了00011000b=0x18个字节
+    mov $0x28,  %eax   # 我们在tss之前设置了5个gdt_entry，每个entry占8个字节，因此在计算的时候就是偏移了40=0x28个字节
     ltr %ax
     ljmp $0x08, $flush
     

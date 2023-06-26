@@ -7,3 +7,4 @@ floppy.img
 *.iso
 *.log
 .idea/**
+.vscode/

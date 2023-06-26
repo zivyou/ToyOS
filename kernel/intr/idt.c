@@ -52,7 +52,31 @@ void register_irq_handler(int32_t irq_num, intr_handler_func handler) {
 }
 
 void clock_callback(registers_ptr_t* registers) {
-    printk("==============================>");
+    // TODO: 时钟中断里要触发内核的调度器来调度线程（还没琢磨明白，等会再说）
+    printk("=========================> %d\n", registers->int_no);
+}
+
+void keyboard_callback(registers_ptr_t* registers) {
+    // 键盘的输入
+    /**
+     * 键盘的输入端口为0x60，可以从这个端口读出一个字节出来。
+     * 这个字节要怎么翻译成人和系统认识的字符，需要借助一种称为‘键盘扫描码’的东西。
+     * 如果读出来的扫描码是0xe0，代表后面还跟有一个字符；如果读出来的是0xe1，代表后面还跟有两个字符；
+     * 以下是从网上抄的一个英语键盘的扫描码。
+     * https://zh.wikipedia.org/wiki/%E9%94%AE%E7%9B%98%E6%89%AB%E6%8F%8F%E7%A0%81
+     * https://www.win.tue.nl/~aeb/linux/kbd/scancodes-1.html
+    */
+    uint8_t input = inb(0x60);
+    if (input == 0xe0) {
+        printk("keyboard input : %c\n", inb(0x60));
+    }
+    if (input == 0x1e) {
+        printk("keyboard input 2: %x\n", input);
+    }
+}
+
+void timer_callback(registers_ptr_t* registers) {
+    printk("on timer callback: %d\n", registers->int_no);
 }
 
 void init_interrupt_chip() {
@@ -99,6 +123,9 @@ void idt_init(){
     } while (0);
     // setup isr
 
+    /**
+     * isr_[0, 31]这些都是在汇编代码中定义的，这些都是出现了异常，处理不了了，因此处理的方法也是统一的：打印栈，然后没了。这个在init_s.S的common_isr中定义了。
+    */
     set_idt_gate(0, 0x8E);
     set_idt_gate(1, 0x8E);
     set_idt_gate(2, 0x8E);
@@ -132,9 +159,18 @@ void idt_init(){
     set_idt_gate(30, 0x8E);
     set_idt_gate(31, 0x8E);
 
+    /**
+     * isr_255 被内核抢过来用了，用来处理系统调用
+    */
     // 系统调用
-     set_idt_gate(255, 0x8E);
+    set_idt_gate(255, 0x8E);
     // set_irq_handler
+    /**
+     * 
+     * irq_handler_[32, 47]这几个中断是内核可以处理的，被触发的时候应该做一些事情，而不是直接打印栈然后躺。
+     * irq_handler_[32, 47]在汇编代码中(intr_s.S)定义了，这部分代码在实现的时候比较统一，都是去传给一个统一的函数处理，
+     * 这个函数就是common_irq。而common_irq又是之间调用了irq_handle()函数。呐，就在下面
+    */
 #define set_irq_handle(index, flag) \
     do {                          \
         extern void irq_handler_##index();                         \
@@ -158,26 +194,36 @@ void idt_init(){
     set_irq_handle(46, 0x8E);
     set_irq_handle(47, 0x8E);
 
-    for (int i=32; i<48; i++)
-        register_irq_handler(i, clock_callback);
+    // for (int i=32; i<48; i++)
+    //     register_irq_handler(i, clock_callback);
+    register_irq_handler(32, clock_callback);
+    register_irq_handler(33, keyboard_callback);
+    register_irq_handler(40, timer_callback);
     __asm__ volatile ("lidt %0"::"m"(idts_ptr));
-    __asm__ volatile ("sti");
+    enable_interrput();
 }
 
-void irq_handler(registers_ptr_t* registers) {
-    printk("handling irq.....");
+void irq_handle(registers_ptr_t* registers) {
+    /**
+     * 汇编代码里定义了[32, 47]号硬件中断调用这个函数来相应
+    */
+    // printk("handling irq.....id: %d\n", registers->int_no);
 
-
+    if (handlers[registers->int_no] != 0) {
+         handlers[registers->int_no](registers);
+    }
+    
+    /**
+     * 由于我们在init_interrupt_chip()中将8259A芯片设置成了‘普通全嵌套、非缓冲、非自动结束中断方式’（为了兼容8086），
+     * 因此在触发中断后，8259A会自动停止工作，需要我们用下面的代码显式复位以下。
+     * （有点蛋疼，等以后琢磨明白了8259A怎么用之后改掉这个）
+    */
     if (registers->int_no >= 40) {
         outb(IO_PIC2, 0x20);
     }
     outb(IO_PIC1, 0x20);
 
-    printk("handling irq.....");
-    if (handlers[registers->int_no] != 0) {
-         handlers[registers->int_no](registers);
-    }
-    enable_interrput();
-    while (1) hlt();
+    // printk("irq handled orver...\n");
+    // enable_interrput();
 }
 

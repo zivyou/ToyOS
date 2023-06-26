@@ -60,10 +60,16 @@ msg_loop:
                 
         
 entry:
+        /**
+        开启A20地址线，来获取更大的内存地址可访问空间
+        */
         inb     $0x92, %al
         or      $0x10, %al
         outb    %al,   $0x92
 
+        /**
+        开启保护模式
+        */
         movl    %cr0, %eax
         or    $1,   %eax
         movl    %eax, %cr0

@@ -17,6 +17,7 @@ typedef struct registers_ptr_t {
     uint16_t ds;
     uint16_t padding1;
 
+    // pusha指令会压这些
     uint32_t edi;
     uint32_t esi;
     uint32_t ebp;

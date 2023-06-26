@@ -5,6 +5,7 @@
 #include "mm/mm.h"
 
 
+
 extern void gdt_init();
 extern void idt_init();
 extern void intr_init();
@@ -12,14 +13,19 @@ extern void intr_init();
 _Noreturn int kern_entry(){
     terminal_init();
     printk("hello world!\n");
-    int int0 = 0;
     printk("welcome!\n");
     gdt_init();
     idt_init();
     mm_init();
+    while (1) {
+        printk("kernel main loop begin....\n");
 
-    int0++;
-    while (1) hlt();
+        /*
+        https://stackoverflow.com/questions/54724812/os-dev-general-protection-fault-problem-after-setting-up-idt
+        */
+        hlt();
+        printk("kernel main loop end....\n");
+    }
     __asm__ volatile ("sti");
     return 0;
 }
