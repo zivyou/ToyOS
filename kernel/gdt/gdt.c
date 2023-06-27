@@ -33,7 +33,7 @@ typedef struct gdt_ptr{
 static struct gdt_entry gdt[6];
 struct gdt_ptr gp;
 
-void set_gdt_entry(int index, uint32_t base, uint32_t limit, uint32_t type, uint32_t s, uint32_t dpl, uint32_t p, uint32_t avl, uint32_t o, uint32_t b, uint32_t g){
+static void set_gdt_entry(int index, uint32_t base, uint32_t limit, uint32_t type, uint32_t s, uint32_t dpl, uint32_t p, uint32_t avl, uint32_t o, uint32_t b, uint32_t g){
     gdt[index].type = type & 0x0F;
     gdt[index].s = s;
     gdt[index].dpl = dpl & 0x03;
@@ -107,7 +107,7 @@ static struct tss_entry tss __attribute__((aligned(8)));
 #define USER_CS     ( (GD_UTEXT) | DPL_USER)
 #define USER_DS     ( (GD_UDATA) | DPL_USER)
 
-void set_gdt_entry_for_tss(int32_t index, uint32_t base, uint32_t limit, uint32_t access, uint32_t gran) {
+static void set_gdt_entry_for_tss(int32_t index, uint32_t base, uint32_t limit, uint32_t access, uint32_t gran) {
     gdt[index].base_low     = (base & 0xFFFF);
     gdt[index].base_mid  = (base >> 16) & 0xFF;
     gdt[index].base_high    = (base >> 24) & 0xFF;
@@ -128,7 +128,7 @@ void set_gdt_entry_for_tss(int32_t index, uint32_t base, uint32_t limit, uint32_
 
 
 
-void set_tss_entry(uint32_t index, uint32_t ss0, uint32_t esp0) {
+static void set_tss_entry(uint32_t index, uint32_t ss0, uint32_t esp0) {
     uint32_t base = (uint32_t)&tss;
     uint32_t limit = base + sizeof(tss);
 

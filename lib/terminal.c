@@ -48,7 +48,7 @@ static inline uint16_t vga_entry(uint8_t data, uint8_t color){
     return ((uint16_t)data | (uint16_t)color<<8);
 }
 
-int screen_full(){
+static int screen_full(){
     if (/*screen.cur_x > VGA_WIDTH-1 &&*/ screen.cur_y>VGA_HEIGHT-1){
         return 1;
     }
@@ -70,7 +70,7 @@ void terminal_init(){
         }
 }
 
-void terminal_scroll(int l){
+static void terminal_scroll(int l){
     if (l < 0){
         /* scroll up l line: remove top l lines from screen */
         uint16_t *temp_buffer = screen.terminal_buffer + (-l)*VGA_WIDTH;
@@ -91,7 +91,7 @@ void terminal_scroll(int l){
     }
 }
 
-void move_cursor(uint16_t x, uint16_t y){
+static void move_cursor(uint16_t x, uint16_t y){
     screen.cursor_pos = y*VGA_WIDTH+x;
     outb(0x3D4, 14);                        
     outb(0x3D5, (screen.cursor_pos >> 8)&0xFF);
@@ -100,7 +100,7 @@ void move_cursor(uint16_t x, uint16_t y){
     
 }
 
-void terminal_put_char(char c){
+static void terminal_put_char(char c){
     if (c == '\r'){
         screen.cur_x = 0;
     }else if (c == '\n'){

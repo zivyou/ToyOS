@@ -35,7 +35,7 @@ static intr_handler_func handlers[256] __attribute__((aligned(4)));
 #define IO_PIC1C  (IO_PIC1+1)
 #define IO_PIC2C  (IO_PIC2+1)
 
-void raw_set_idt_gate(int n, uint8_t flag, void *handler){
+static void raw_set_idt_gate(int n, uint8_t flag, void *handler){
     if (n>44)
     printk("setting up idt gate......%d\n", n);
     uint32_t addr = (uint32_t) handler;
@@ -51,13 +51,13 @@ void register_irq_handler(int32_t irq_num, intr_handler_func handler) {
     handlers[irq_num] = handler;
 }
 
-void clock_callback(registers_ptr_t* registers) {
+static void clock_callback(registers_ptr_t* registers) {
     // TODO: 时钟中断里要触发内核的调度器来调度线程（还没琢磨明白，等会再说）
     printk("????????????????????????????????????");
     printk("=========================> %d\n", registers->int_no);
 }
 
-void keyboard_callback(registers_ptr_t* registers) {
+static void keyboard_callback(registers_ptr_t* registers) {
     // 键盘的输入
     /**
      * 键盘的输入端口为0x60，可以从这个端口读出一个字节出来。
@@ -76,11 +76,11 @@ void keyboard_callback(registers_ptr_t* registers) {
     }
 }
 
-void timer_callback(registers_ptr_t* registers) {
+static void timer_callback(registers_ptr_t* registers) {
     printk("on timer callback: %d\n", registers->int_no);
 }
 
-void init_interrupt_chip() {
+static void init_interrupt_chip() {
     // 设置 8259A 芯片
 // 重新映射 IRQ 表
         // 两片级联的 Intel 8259A 芯片
