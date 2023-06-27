@@ -31,12 +31,12 @@ irq_handler_\num&:
 
 common_isr:
     cli
-    pusha
+    pushal
 
     movl %ds, %eax
     pushl %eax
 
-    mov $0x10, %ax
+    movl $0x10, %eax
     mov %ax, %ds
     mov %ax, %ss
     mov %ax, %es
@@ -54,7 +54,7 @@ common_isr:
     mov %bx, %fs
     mov %bx, %gs
 
-    popa
+    popal
     addl $8, %esp # 清理err_codes, int_no
     iret
 
@@ -97,13 +97,14 @@ ISR_NOERRCODE 255
 
     .extern irq_handle
 common_irq:
-    pusha
-    mov $0x10, %ax
+    pushal  /*依次压入eax,ecx,edx,ebx,esp,ebp,esi,edi*/
+    movl $0x10, %eax
     mov %ax, %ds
     mov %ax, %ss
     mov %ax, %es
     mov %ax, %fs
     mov %ax, %gs
+    pushl %eax
 
     pushl %esp
     /**
@@ -120,14 +121,14 @@ common_irq:
     call irq_handle
     addl $4, %esp
 
-    mov $0x10, %bx
+    popl %ebx
     mov %bx, %ds
     mov %bx, %ss
     mov %bx, %es
     mov %bx, %fs
     mov %bx, %gs
 
-    popa
+    popal
     /**
     上面的irq_handler_宏定义里我们压入了一个num，要记得弹出来。同时，irq系统都会自动帮我们压入一个errno（隐式压入的），因此我们需要弹8个字节出来
     */

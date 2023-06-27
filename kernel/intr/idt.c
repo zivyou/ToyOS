@@ -53,6 +53,7 @@ void register_irq_handler(int32_t irq_num, intr_handler_func handler) {
 
 void clock_callback(registers_ptr_t* registers) {
     // TODO: 时钟中断里要触发内核的调度器来调度线程（还没琢磨明白，等会再说）
+    printk("????????????????????????????????????");
     printk("=========================> %d\n", registers->int_no);
 }
 
@@ -207,10 +208,10 @@ void irq_handle(registers_ptr_t* registers) {
     /**
      * 汇编代码里定义了[32, 47]号硬件中断调用这个函数来相应
     */
-    // printk("handling irq.....id: %d\n", registers->int_no);
+    printk("handling irq.....id: %d\n", registers->int_no);
 
     if (handlers[registers->int_no] != 0) {
-         handlers[registers->int_no](registers);
+        handlers[registers->int_no](registers);
     }
     
     /**
