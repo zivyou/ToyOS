@@ -8,6 +8,10 @@
 #include "types.h"
 
 #define PAGE_SIZE (0x1000)
+#define MAX_MEM_SIZE (0x40000000)  // 1GB
+#define MAX_PAGE_AMOUNT (MAX_MEM_SIZE / PAGE_SIZE) 
+
+
 
 typedef uint32_t page_table_entry_t;
 
@@ -18,5 +22,7 @@ static page_table_entry_t page_tables[PAGE_SIZE/sizeof(page_table_entry_t)] __at
 
 
 void mm_init();
+void init_paging();
+void* phy_alloc_page();
 
 #endif //TOYOS_MM_H

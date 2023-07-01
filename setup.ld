@@ -12,6 +12,7 @@ phys = 0x00100000;
 SECTIONS
 {
         . = 0x100000;
+        PROVIDE( _kernel_start = . );
         .init.text :
         {
             code = .;
@@ -42,6 +43,7 @@ SECTIONS
                 *(.stabstr)
                 . = ALIGN(4096);
         }
+        PROVIDE( _kernel_end = . );
         
         /DISCARD/ : { *(.comment) *(.eh_frame) }
 }

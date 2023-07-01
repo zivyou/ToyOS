@@ -19,8 +19,13 @@ MBOOT_CHECKSUM     = -(MBOOT_HEADER_MAGIC + MBOOT_HEAD_FLAG)
         .extern kern_entry
         .extern gdt_init
         .extern gp
+        .global HADRWARE_INFO
 
 _start:
+        /**
+        grub会帮我们探测机器硬件配置，探测完的结果，会放在%ebx指向的地址中，我们得先存起来
+        */
+        movl    %ebx, (HADRWARE_INFO)
         movl    $STACK_TOP, %ebp
         movl    %ebp, %esp
         andl    $0x0FFFFFFF0, %esp
@@ -103,5 +108,8 @@ stack:
         .space 65536
 
 STACK_TOP:
+        .space 2048
 
+HADRWARE_INFO:
+        .long 0
 

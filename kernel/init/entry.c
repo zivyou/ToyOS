@@ -16,7 +16,10 @@ _Noreturn int kern_entry(){
     printk("welcome!\n");
     gdt_init();
     idt_init();
+    init_paging();
     mm_init();
+    void* page = phy_alloc_page();
+    printk("alloced physical page: 0x%x\n", page);
     while (1) {
         // printk("kernel main loop begin....\n");
 

@@ -84,7 +84,7 @@ static void terminal_scroll(int l){
         for (; j<VGA_HEIGHT*VGA_WIDTH; j++){
             screen.terminal_buffer[j] = vga_entry(' ', screen.terminal_color);
         }
-        screen.cur_y = VGA_HEIGHT + l;
+        screen.cur_y = VGA_HEIGHT + l - 1;
         screen.cur_x = 0;
     }else{
         /* emm.. seems scrolling down is not reasonable.. */
