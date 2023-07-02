@@ -1,7 +1,7 @@
 #include <printk.h>
 #include <terminal.h>
 
-static void copy_dec(char *buffer, int32_t *pos, int32_t data){
+static void copy_dec(char *buffer, int32_t *pos, uint32_t data){
     if (data == 0) {
         buffer[*pos] = '0';
         (*pos)++;
@@ -29,7 +29,7 @@ static void copy_dec(char *buffer, int32_t *pos, int32_t data){
     *pos = j;
 };
 
-static void copy_hex(char *buffer, int32_t *pos, int32_t data){
+static void copy_hex(char *buffer, int32_t *pos, uint32_t data){
     if (data == 0) {
         buffer[*pos] = '0';
         (*pos)++;
