@@ -4,7 +4,13 @@
 
 // Page directory and page tables
 pde_t g_page_dir[1024] PAGE_ALIGN;
-pte_t g_page_tables[1024] PAGE_ALIGN;
+
+// Static page tables for early identity mapping (before PMM is ready)
+// These cover the first 8MB of physical memory:
+// - g_identity_map_page_table_0: maps 0x00000000 - 0x003FFFFF (4MB)
+// - g_identity_map_page_table_1: maps 0x00400000 - 0x007FFFFF (4MB)
+pte_t g_identity_map_page_table_0[1024] PAGE_ALIGN;
+pte_t g_identity_map_page_table_1[1024] PAGE_ALIGN;
 
 // Map a virtual address to a physical address
 void paging_map_page(uint32_t virt_addr, uint32_t phys_addr, uint32_t flags) {
@@ -17,26 +23,39 @@ void paging_map_page(uint32_t virt_addr, uint32_t phys_addr, uint32_t flags) {
 
     if (!pde_is_present(pde)) {
         // Page table not present, need to allocate one
-        uint32_t pt_addr = pmm_alloc_page();
-        if (pt_addr == 0) {
-            printk("ERROR: Failed to allocate page table for virtual address 0x%x\n", virt_addr);
-            return;
-        }
+        uint32_t pt_addr;
+        pte_t* pt;
 
-        // Clear the new page table
-        pte_t* pt = (pte_t*)pt_addr;
-        for (int i = 0; i < 1024; i++) {
-            pt[i].present = 0;
-            pt[i].write = 0;
-            pt[i].user = 0;
-            pt[i].pwt = 0;
-            pt[i].pcd = 0;
-            pt[i].accessed = 0;
-            pt[i].dirty = 0;
-            pt[i].pat = 0;
-            pt[i].global = 0;
-            pt[i].available = 0;
-            pt[i].frame = 0;
+        // For the first 2 page tables (pd_index = 0, 1), use the statically allocated page tables
+        // This avoids issues when PMM cannot allocate low memory pages during early init
+        if (pd_index == 0) {
+            pt_addr = (uint32_t)g_identity_map_page_table_0;
+            pt = g_identity_map_page_table_0;
+        } else if (pd_index == 1) {
+            pt_addr = (uint32_t)g_identity_map_page_table_1;
+            pt = g_identity_map_page_table_1;
+        } else {
+            pt_addr = pmm_alloc_page();
+            if (pt_addr == 0) {
+                printk("ERROR: Failed to allocate page table for virtual address 0x%x\n", virt_addr);
+                return;
+            }
+            pt = (pte_t*)pt_addr;
+
+            // Clear the new page table
+            for (int i = 0; i < 1024; i++) {
+                pt[i].present = 0;
+                pt[i].write = 0;
+                pt[i].user = 0;
+                pt[i].pwt = 0;
+                pt[i].pcd = 0;
+                pt[i].accessed = 0;
+                pt[i].dirty = 0;
+                pt[i].pat = 0;
+                pt[i].global = 0;
+                pt[i].available = 0;
+                pt[i].frame = 0;
+            }
         }
 
         // Set up the page directory entry

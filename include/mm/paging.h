@@ -97,13 +97,44 @@ static inline void pde_set_present(pde_t* pde, int val) {
 
 // Page directory and table
 extern pde_t g_page_dir[1024] PAGE_ALIGN;
-extern pte_t g_page_tables[1024] PAGE_ALIGN;
+
+// Static page tables for early identity mapping
+extern pte_t g_identity_map_page_table_0[1024] PAGE_ALIGN;  // Maps 0x0 - 0x3FFFFF
+extern pte_t g_identity_map_page_table_1[1024] PAGE_ALIGN;  // Maps 0x400000 - 0x7FFFFF
 
 // Paging functions
 void paging_init();
 void paging_load_cr3(uint32_t page_dir_phys);
 void paging_enable();
+
+// Map a virtual address to a physical address
 void paging_map_page(uint32_t virt_addr, uint32_t phys_addr, uint32_t flags);
+
+// Unmap a virtual address (remove page mapping)
+void paging_unmap_page(uint32_t virt_addr);
+
+// Map multiple pages (contiguous virtual to physical)
+void paging_map_pages(uint32_t virt_addr, uint32_t phys_addr, uint32_t page_count, uint32_t flags);
+
+// Unmap multiple pages
+void paging_unmap_pages(uint32_t virt_addr, uint32_t page_count);
+
+// Get physical address for a virtual address
 uint32_t paging_get_phys_addr(uint32_t virt_addr);
+
+// Change page protection flags
+void paging_set_page_flags(uint32_t virt_addr, uint32_t flags);
+
+// Flush TLB (Translation Lookaside Buffer)
+void paging_flush_tlb();
+
+// Get page directory address
+uint32_t paging_get_page_dir();
+
+// Invalidate a specific page in TLB
+void paging_invalidate_page(uint32_t virt_addr);
+
+// Print page table statistics
+void paging_print_stats();
 
 #endif // PAGING_H

@@ -223,4 +223,6 @@ void mm_init() {
     printk("mm initing.....\n");
     pmm_init();
     paging_init();
+    paging_load_cr3((uint32_t)g_page_dir);
+    paging_enable();
 }
