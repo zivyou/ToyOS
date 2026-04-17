@@ -36,8 +36,6 @@ void pmm_mark_region(uint32_t start, uint32_t end, int used) {
     uint32_t start_page = start / PAGE_SIZE;
     uint32_t end_page = end / PAGE_SIZE;
 
-    printk("Marking pages 0x%x - 0x%x (%s)\n", start_page, end_page, used ? "used" : "free");
-
     for (uint32_t i = start_page; i < end_page; i++) {
         if (used) {
             pmm_set_bit(i);
@@ -50,6 +48,7 @@ void pmm_mark_region(uint32_t start, uint32_t end, int used) {
 }
 
 // Allocate a physical page
+// Returns: physical address of allocated page, 0 on failure
 uint32_t pmm_alloc_page() {
     for (uint32_t i = 0; i < g_total_pages; i++) {
         if (!pmm_test_bit(i)) {
@@ -73,6 +72,92 @@ void pmm_free_page(uint32_t page_addr) {
         pmm_clear_bit(page);
         g_free_pages++;
     }
+}
+
+// Allocate multiple contiguous pages
+// Returns: physical address of first allocated page, 0 on failure
+uint32_t pmm_alloc_pages(uint32_t page_count) {
+    if (page_count == 0) {
+        printk("WARNING: pmm_alloc_pages called with count=0\n");
+        return 0;
+    }
+
+    if (page_count > g_free_pages) {
+        printk("ERROR: Cannot allocate %d pages, only %d free\n", page_count, g_free_pages);
+        return 0;
+    }
+
+    // Find contiguous free pages
+    uint32_t contiguous = 0;
+    for (uint32_t i = 0; i < g_total_pages; i++) {
+        if (!pmm_test_bit(i)) {
+            contiguous++;
+            if (contiguous == page_count) {
+                // Found enough contiguous pages, allocate them
+                uint32_t start_page = i - page_count + 1;
+                uint32_t start_addr = start_page * PAGE_SIZE;
+
+                for (uint32_t j = start_page; j <= i; j++) {
+                    pmm_set_bit(j);
+                    g_free_pages--;
+                }
+
+                printk("Allocated %d contiguous pages at 0x%x\n", page_count, start_addr);
+                return start_addr;
+            }
+        } else {
+            contiguous = 0;
+        }
+    }
+
+    printk("ERROR: Could not find %d contiguous pages\n", page_count);
+    return 0;
+}
+
+// Free multiple contiguous pages
+void pmm_free_pages(uint32_t page_addr, uint32_t page_count) {
+    uint32_t start_page = page_addr / PAGE_SIZE;
+
+    if (start_page >= g_total_pages) {
+        printk("ERROR: Invalid page address 0x%x\n", page_addr);
+        return;
+    }
+
+    if (start_page + page_count > g_total_pages) {
+        printk("ERROR: Freeing %d pages starting at 0x%x exceeds memory\n", page_count, page_addr);
+        return;
+    }
+
+    for (uint32_t i = start_page; i < start_page + page_count; i++) {
+        if (!pmm_test_bit(i)) {
+            printk("WARNING: Page 0x%x not allocated, skipping\n", i * PAGE_SIZE);
+        } else {
+            pmm_clear_bit(i);
+            g_free_pages++;
+        }
+    }
+
+    printk("Freed %d contiguous pages at 0x%x\n", page_count, page_addr);
+}
+
+// Get number of free pages
+uint32_t pmm_get_free_pages() {
+    return g_free_pages;
+}
+
+// Get total number of pages
+uint32_t pmm_get_total_pages() {
+    return g_total_pages;
+}
+
+// Print memory statistics
+void pmm_print_stats() {
+    printk("=== Memory Statistics ===\n");
+    printk("Total pages: %d\n", g_total_pages);
+    printk("Free pages: %d (%d MB)\n", g_free_pages, (g_free_pages * PAGE_SIZE) / (1024 * 1024));
+    printk("Used pages: %d (%d MB)\n", g_total_pages - g_free_pages,
+           ((g_total_pages - g_free_pages) * PAGE_SIZE) / (1024 * 1024));
+    printk("========================\n");
 }
 
 // Initialize physical memory manager from multiboot memory map
