@@ -28,13 +28,13 @@ _start:
 VGA_ADDR        = 0xB8000
 COLOR           = 0x61
 
-        movl    $0xFFFF, %ecx
+        movl    $2000, %ecx
         movl    $VGA_ADDR, %edi
 clear:
         movl    $0, (%edi)
-        inc     %edi
-        dec     %ecx
-        jnz     clear
+        movl    $0, 4(%edi)
+        addl    $4, %edi
+        loop    clear
         
         
         xorl    %edi, %edi
@@ -66,6 +66,8 @@ entry:
         inb     $0x92, %al
         or      $0x10, %al
         outb    %al,   $0x92
+        
+        call gdt_init
 
         /**
         开启保护模式
@@ -75,15 +77,6 @@ entry:
         movl    %eax, %cr0
 1:
         
-        movw         $0x0010,  %ax
-        movw         %ax,    %ds
-        movw         %ax,    %es
-        movw         %ax,    %fs
-        movw         %ax,    %gs
-        movw         %ax,    %ss
-        
-        cli
-
         call    kern_entry
         # invoke the BIOS reset code...
         hlt

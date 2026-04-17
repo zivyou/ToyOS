@@ -162,8 +162,8 @@ void idt_init(){
     /**
      * isr_255 被内核抢过来用了，用来处理系统调用
     */
-    // 系统调用
-    set_idt_gate(255, 0x8E);
+    // 系统调用; 系统调用应该允许用户态调用, flag的DPL位(bit 5-6)应该要设置成1
+    set_idt_gate(255, 0xEE);
     // set_irq_handler
     /**
      * 

@@ -17,15 +17,15 @@ _Noreturn int kern_entry(){
     gdt_init();
     idt_init();
     mm_init();
+    __asm__ volatile ("sti");
     while (1) {
         printk("kernel main loop begin....\n");
-
+        printk("test: %d", 1/0);
         /*
         https://stackoverflow.com/questions/54724812/os-dev-general-protection-fault-problem-after-setting-up-idt
         */
         hlt();
         printk("kernel main loop end....\n");
     }
-    __asm__ volatile ("sti");
     return 0;
 }
