@@ -3,6 +3,7 @@
 #include "printk.h"
 #include "common.h"
 #include "mm/mm.h"
+#include "multiboot.h"
 
 
 
@@ -10,8 +11,9 @@ extern void gdt_init();
 extern void idt_init();
 extern void intr_init();
 
-_Noreturn int kern_entry(){
+_Noreturn int kern_entry(uint32_t magic, uint32_t info_ptr){
     terminal_init();
+    multiboot_init(magic, (multiboot_info_t*)info_ptr);
     printk("hello world!\n");
     printk("welcome!\n");
     gdt_init();

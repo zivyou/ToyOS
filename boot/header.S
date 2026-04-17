@@ -25,6 +25,11 @@ _start:
         movl    %ebp, %esp
         andl    $0x0FFFFFFF0, %esp
 
+        # Push multiboot magic and info pointer for C code
+        # EAX = magic (0x2BADB002), EBX = info pointer
+        pushl   %ebx        # multiboot info pointer (second parameter)
+        pushl   %eax        # multiboot magic (first parameter)
+
 VGA_ADDR        = 0xB8000
 COLOR           = 0x61
 

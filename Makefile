@@ -46,6 +46,6 @@ iso_qemu:
 	qemu-system-i386  -s -monitor stdio -cdrom toyos_kernel.iso -boot a
 
 clean:
-	rm ${S_OBJECT}
-	rm ${C_OBJECT}
-	rm ${KERN_NAME}
+	rm -f ${S_OBJECT}
+	rm -f ${C_OBJECT}
+	rm -f ${KERN_NAME}
