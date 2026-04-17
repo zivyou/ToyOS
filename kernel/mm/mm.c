@@ -2,6 +2,7 @@
 // Created by ziv on 2022/3/31.
 //
 #include "mm/mm.h"
+#include "mm/paging.h"
 #include "printk.h"
 #include "multiboot.h"
 
@@ -221,4 +222,5 @@ void pmm_init() {
 void mm_init() {
     printk("mm initing.....\n");
     pmm_init();
+    paging_init();
 }

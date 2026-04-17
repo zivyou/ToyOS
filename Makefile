@@ -35,6 +35,9 @@ qemu:
 	## qemu-system-i386  -s -monitor stdio -fda floppy.img -boot a
 	## qemu-system-i386  -s -monitor stdio -cdrom toyos_kernel.iso -boot a
 	qemu-system-i386  -s -monitor stdio -kernel toyos_kernel -boot a
+# Terminal mode - for non-interactive testing
+terminal:
+	qemu-system-i386 -nographic  -kernel toyos_kernel -m 128M
 check_boot:
 	grub-file --is-x86-multiboot toyos_kernel
 	cp toyos_kernel iso/boot/
