@@ -30,7 +30,9 @@ void copy_dec(char *buffer, int32_t *pos, int32_t data){
 };
 
 void copy_hex(char *buffer, int32_t *pos, int32_t data){
-    if (data == 0) {
+    uint32_t udata = (uint32_t)data;  // Use unsigned for correct hex printing
+
+    if (udata == 0) {
         buffer[*pos] = '0';
         (*pos)++;
         return;
@@ -38,29 +40,31 @@ void copy_hex(char *buffer, int32_t *pos, int32_t data){
     char tmp[32] = {0, };
     for (int k=0; k<32; k++) tmp[k] = 0;
     int i=0; int j=*pos;
-    while (data/16){
-        if (data % 16 < 10){
-            tmp[i] = data % 16 + '0';
-        }else if (data % 16 >= 10){
-            tmp[i] = data % 16 - 10 + 'a'; 
+    while (udata/16){
+        if (udata % 16 < 10){
+            tmp[i] = udata % 16 + '0';
+        }else if (udata % 16 >= 10){
+            tmp[i] = udata % 16 - 10 + 'a';
         } else {
             // do nothing
         }
         i++;
-        data = data/16;
+        udata = udata/16;
     }
-    
-    if (data){
-        if (data < 10)
-            tmp[i] = data + '0';
+
+    if (udata){
+        if (udata < 10)
+            tmp[i] = udata + '0';
         else
-            tmp[i] = data - 10 + 'a';
+            tmp[i] = udata - 10 + 'a';
+        i++;  // Important: increment i after storing the last digit
     }
-    
-    for (;i >= 0; i--){
+
+    // Copy in reverse order
+    for (i--; i >= 0; i--){
         buffer[j++] = tmp[i];
     }
-    
+
     *pos = j;
 }
 

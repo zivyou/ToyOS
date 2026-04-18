@@ -1,6 +1,28 @@
 #include <types.h>
 #include <common.h>
 
+// Serial port constants
+#define SERIAL_PORT 0x3F8
+
+// Initialize serial port for output
+static void serial_init() {
+    outb(SERIAL_PORT + 1, 0x00);    // Disable all interrupts
+    outb(SERIAL_PORT + 3, 0x80);    // Enable DLAB (set baud rate divisor)
+    outb(SERIAL_PORT + 0, 0x03);    // Set divisor to 3 (lo byte) 38400 baud
+    outb(SERIAL_PORT + 1, 0x00);    //                  (hi byte)
+    outb(SERIAL_PORT + 3, 0x03);    // 8 bits, no parity, one stop bit
+    outb(SERIAL_PORT + 2, 0xC7);    // Enable FIFO, clear them, with 14-byte threshold
+    outb(SERIAL_PORT + 4, 0x0B);    // IRQs enabled, RTS/DSR set
+}
+
+// Write character to serial port
+static void serial_putchar(char c) {
+    while ((inb(SERIAL_PORT + 5) & 0x20) == 0); // Wait for transmit buffer empty
+    outb(SERIAL_PORT, c);
+}
+
+static int serial_initialized = 0;
+
 
 /**
  *                ------------------------> x
@@ -56,7 +78,10 @@ int screen_full(){
 }
 
 void terminal_init(){
-    
+    // Initialize serial port
+    serial_init();
+    serial_initialized = 1;
+
     screen.cur_x = 0; //[0, VGA_WIDTH)
     screen.cur_y = 0; //[0, VGA_HEIGHT)
     screen.terminal_color = VGA_COLOR_LIGHT_GREY | VGA_COLOR_BLACK << 4;
@@ -101,6 +126,11 @@ void move_cursor(uint16_t x, uint16_t y){
 }
 
 void terminal_put_char(char c){
+    // Output to serial port if initialized
+    if (serial_initialized) {
+        serial_putchar(c);
+    }
+
     if (c == '\r'){
         screen.cur_x = 0;
     }else if (c == '\n'){
@@ -112,12 +142,12 @@ void terminal_put_char(char c){
         screen.terminal_buffer[screen.cur_y*VGA_WIDTH+screen.cur_x] = (screen.terminal_color<<8) | (uint16_t)c;
         screen.cur_x++;
     }
-    
+
     if (screen.cur_x >= VGA_WIDTH){
         screen.cur_x = 0;
         screen.cur_y ++;
     }
-    
+
     if (screen.cur_x < 0){
         if (screen.cur_y > 0){
             screen.cur_x = VGA_WIDTH;
