@@ -48,4 +48,7 @@ void pmm_print_stats();
 // Initialize memory management (PMM and paging)
 void mm_init();
 
+// Initialize kernel heap
+void heap_init();
+
 #endif //TOYOS_MM_H

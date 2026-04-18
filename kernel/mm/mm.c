@@ -3,6 +3,7 @@
 //
 #include "mm/mm.h"
 #include "mm/paging.h"
+#include "mm/heap.h"
 #include "printk.h"
 #include "multiboot.h"
 
@@ -195,7 +196,13 @@ void pmm_init() {
         g_total_pages = BITMAP_SIZE * 32;
     }
 
-    // Second pass: initialize bitmap from memory map
+    // Initialize all pages as used (set all bits)
+    // This ensures that pages not in the mmap are considered used by default
+    for (uint32_t i = 0; i < (g_total_pages + 31) / 32; i++) {
+        g_pmm_bitmap[i] = 0xFFFFFFFF;
+    }
+
+    // Second pass: only mark AVAILABLE regions as free
     mmap = (multiboot_mmap_entry_t*)g_multiboot_info->mmap_addr;
     int region_count = 0;
 
@@ -208,13 +215,17 @@ void pmm_init() {
             if (mmap->type == MULTIBOOT_MEMORY_AVAILABLE) {
                 pmm_mark_region(start, end, 0);  // Mark as free
                 region_count++;
-            } else {
-                pmm_mark_region(start, end, 1);  // Mark as used
             }
+            // All other types (RESERVED, ACPI_RECLAIMABLE, NVS, UNUSABLE)
+            // remain marked as used
         }
 
         mmap = (multiboot_mmap_entry_t*)((uint32_t)mmap + mmap->size + sizeof(mmap->size));
     }
+
+    // Explicitly mark page 0 (address 0) as used
+    // Page 0 should never be allocated as it's reserved for NULL pointer detection
+    pmm_mark_region(0, PAGE_SIZE, 1);
 
     printk("PMM initialized: %d/%d pages free\n", g_free_pages, g_total_pages);
 }
@@ -225,4 +236,5 @@ void mm_init() {
     paging_init();
     paging_load_cr3((uint32_t)g_page_dir);
     paging_enable();
+    heap_init();
 }

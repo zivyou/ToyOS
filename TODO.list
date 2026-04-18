@@ -10,6 +10,6 @@
   6.4 Setup initial page directory and page tables;
   6.5 Enable paging (set CR0.PG bit);
   6.6 Implement virtual memory manager (page table manipulation);
-> 6.7 Implement kmalloc/kfree for kernel heap;
+  6.7 Implement kmalloc/kfree for kernel heap;
 > 6.8 Add memory protection and access control;
 7.
