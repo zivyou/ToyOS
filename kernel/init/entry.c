@@ -4,6 +4,7 @@
 #include "common.h"
 #include "mm/mm.h"
 #include "mm/heap.h"
+#include "mm/paging.h"
 #include "multiboot.h"
 
 
@@ -75,6 +76,87 @@ _Noreturn int kern_entry(uint32_t magic, uint32_t info_ptr){
     heap_print_stats();
 
     printk("\n=== kmalloc/kfree tests completed ===\n\n");
+
+    // Memory protection tests
+    printk("=== Testing Memory Protection ===\n");
+
+    // Test 1: Get page flags for known addresses
+    printk("\nTest 1: Getting page flags...\n");
+    uint32_t flags = paging_get_page_flags(0x1000);
+    printk("  Page flags for 0x1000: 0x%x\n", flags);
+
+    flags = paging_get_page_flags((uint32_t)ptr6);
+    printk("  Page flags for heap ptr6 (0x%x): 0x%x\n", ptr6, flags);
+
+    flags = paging_get_page_flags((uint32_t)kern_entry);
+    printk("  Page flags for kern_entry function (0x%x): 0x%x\n",
+           (uint32_t)kern_entry, flags);
+
+    // Test 2: Check accessibility
+    printk("\nTest 2: Checking accessibility...\n");
+    int accessible = paging_is_accessible(0x1000, 0, 0);  // Read, kernel
+    printk("  0x1000 readable by kernel: %s\n", accessible ? "YES" : "NO");
+
+    accessible = paging_is_accessible(0x1000, 1, 0);  // Write, kernel
+    printk("  0x1000 writable by kernel: %s\n", accessible ? "YES" : "NO");
+
+    // Test 3: Make a page read-only
+    printk("\nTest 3: Making page read-only...\n");
+    uint32_t test_addr = (uint32_t)ptr5;
+    printk("  Original flags for 0x%x: 0x%x\n", test_addr,
+           paging_get_page_flags(test_addr));
+    paging_make_read_only(test_addr);
+    printk("  After make_read_only: 0x%x\n",
+           paging_get_page_flags(test_addr));
+
+    // Test 4: Make it writable again
+    printk("\nTest 4: Making page writable again...\n");
+    paging_make_writable(test_addr);
+    printk("  After make_writable: 0x%x\n",
+           paging_get_page_flags(test_addr));
+
+    // Test 5: User/kernel accessibility
+    printk("\nTest 5: User/kernel accessibility...\n");
+    printk("  Original flags: 0x%x\n", paging_get_page_flags(test_addr));
+    paging_make_user_accessible(test_addr);
+    printk("  After make_user_accessible: 0x%x\n",
+           paging_get_page_flags(test_addr));
+
+    paging_make_kernel_only(test_addr);
+    printk("  After make_kernel_only: 0x%x\n",
+           paging_get_page_flags(test_addr));
+
+    // Test 6: Print paging statistics
+    printk("\nTest 6: Paging statistics...\n");
+    paging_print_stats();
+
+    // Test 7: Unmap test (careful - don't unmap kernel code)
+    printk("\nTest 7: Testing unmapping...\n");
+    // Allocate a page for testing
+    uint32_t test_phys = pmm_alloc_page();
+    if (test_phys) {
+        uint32_t test_virt = 0xC0000000;  // Use high memory for test
+        paging_map_page(test_virt, test_phys, PTE_PRESENT | PTE_WRITE);
+        printk("  Mapped test page: 0x%x -> 0x%x\n", test_virt, test_phys);
+
+        // Write to it
+        volatile uint32_t* test_ptr = (uint32_t*)test_virt;
+        *test_ptr = 0xDEADBEEF;
+        printk("  Wrote 0xDEADBEEF, read back: 0x%x\n", *test_ptr);
+
+        // Unmap it
+        paging_unmap_page(test_virt);
+        printk("  Unmapped test page\n");
+
+        // Check if it's still accessible
+        flags = paging_get_page_flags(test_virt);
+        printk("  Page flags after unmap: 0x%x\n", flags);
+
+        // Free the physical page
+        pmm_free_page(test_phys);
+    }
+
+    printk("\n=== Memory protection tests completed ===\n\n");
     while (1) {
         // printk("kernel main loop begin....\n");
         /*

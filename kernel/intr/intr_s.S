@@ -1,6 +1,7 @@
 
     .code32
     .extern stack_dump
+    .extern page_fault_isr
 
 .altmacro
 .macro ISR_NOERRCODE num
@@ -63,7 +64,63 @@ ISR_ERRCODE 10  # 无效TSS
 ISR_ERRCODE 11  # 段不存在
 ISR_ERRCODE 12  # 栈错误
 ISR_ERRCODE 13  # 常规保护
-ISR_ERRCODE 14  # 页故障
+
+# Page fault handler (interrupt 14) - needs special handling
+.global isr_14
+isr_14:
+    cli
+    # Save registers
+    pusha
+
+    # Save data segments
+    movl %ds, %eax
+    pushl %eax
+
+    # Load kernel data segment
+    mov $0x10, %ax
+    mov %ax, %ds
+    mov %ax, %ss
+    mov %ax, %es
+    mov %ax, %fs
+    mov %ax, %gs
+
+    # Push parameters for page_fault_isr(regs, error_code, fault_addr)
+    # Note: cdecl calling convention pushes arguments right-to-left
+
+    # Parameter 3: fault_addr (read from CR2)
+    movl %cr2, %eax
+    pushl %eax
+
+    # Parameter 2: error_code (pushed by CPU, now at offset 52 from current ESP)
+    movl 52(%esp), %eax
+    pushl %eax
+
+    # Parameter 1: pointer to registers structure (at offset 40 from current ESP)
+    lea 40(%esp), %eax
+    pushl %eax
+
+    # Call page fault handler
+    call page_fault_isr
+
+    # Clean up arguments (3 * 4 = 12 bytes)
+    addl $12, %esp
+
+    # Restore data segments
+    popl %ebx
+    mov %bx, %ds
+    mov %bx, %ss
+    mov %bx, %es
+    mov %bx, %fs
+    mov %bx, %gs
+
+    # Restore general registers
+    popa
+
+    # Clean up error code and interrupt number
+    addl $8, %esp
+
+    iret
+
 ISR_ERRCODE 17  # 对齐检查
 
 ISR_NOERRCODE 0  # 除0异常

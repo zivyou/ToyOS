@@ -3,7 +3,7 @@
 3. a simple working and reliable interrupt/exception handling system;
 4. memory map design, protected mode;
 5. setup interruption/exception
-> 6. (ongoing) memory management(malloc, slab, buddy-system...);
+6. memory management(pmm, vmm, kmalloc, page fault...);
   6.1 Get memory map from Multiboot information;
   6.2 Initialize physical memory manager (bitmap-based free page tracking);
   6.3 Implement page frame allocation/deallocation (alloc_page/free_page);
@@ -11,5 +11,5 @@
   6.5 Enable paging (set CR0.PG bit);
   6.6 Implement virtual memory manager (page table manipulation);
   6.7 Implement kmalloc/kfree for kernel heap;
-> 6.8 Add memory protection and access control;
+  6.8 Add memory protection and access control;
 7.

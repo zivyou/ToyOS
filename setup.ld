@@ -11,7 +11,7 @@ phys = 0x00100000;
 
 SECTIONS
 {
-        . = 0x100000;
+        . = phys;
         .init.text :
         {
             code = .;

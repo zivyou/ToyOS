@@ -137,4 +137,37 @@ void paging_invalidate_page(uint32_t virt_addr);
 // Print page table statistics
 void paging_print_stats();
 
+// Page fault error code bits
+#define PF_PRESENT    (1 << 0)  // Page not present
+#define PF_WRITE      (1 << 1)  // Write access
+#define PF_USER       (1 << 2)  // User mode access
+#define PF_RESERVED   (1 << 3)  // Reserved bit set
+#define PF_FETCH      (1 << 4)  // Instruction fetch
+
+// Page fault handler (called from interrupt handler)
+void page_fault_handler(uint32_t error_code, uint32_t fault_addr, registers_ptr_t* regs);
+
+// Page fault ISR (called from assembly)
+void page_fault_isr(registers_ptr_t* regs, uint32_t error_code, uint32_t fault_addr);
+
+// Get current page protection flags for a virtual address
+// Returns: flags if page is mapped, 0 if not mapped
+uint32_t paging_get_page_flags(uint32_t virt_addr);
+
+// Make a page read-only (remove write permission)
+void paging_make_read_only(uint32_t virt_addr);
+
+// Make a page writable (add write permission)
+void paging_make_writable(uint32_t virt_addr);
+
+// Make a page accessible to user mode (add user permission)
+void paging_make_user_accessible(uint32_t virt_addr);
+
+// Make a page kernel-only (remove user permission)
+void paging_make_kernel_only(uint32_t virt_addr);
+
+// Check if an address is accessible
+// Returns: 1 if accessible, 0 if not
+int paging_is_accessible(uint32_t virt_addr, int is_write, int is_user_mode);
+
 #endif // PAGING_H
