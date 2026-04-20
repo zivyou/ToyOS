@@ -75,31 +75,17 @@ task_t* task_create(void (*entry)(void), uint32_t is_kernel_task) {
         return NULL;
     }
 
-    // Set kernel stack to top of allocated memory
-    task->context.esp = task->kernel_stack + KERNEL_STACK_SIZE;
+    // Pre-stack context data in the correct layout
+    // Stack layout (from low to high address): EIP, EFLAGS, EBP, EDI, ESI
+    // ESP should point to the bottom (below ESI) so pop can restore in correct order
+    uint32_t *stack_top = (uint32_t*)(task->kernel_stack + KERNEL_STACK_SIZE);
 
-    // Initialize context on the stack for first-time task switch
-    uint32_t* stack_top = (uint32_t*)(task->kernel_stack + KERNEL_STACK_SIZE);
+    *(--stack_top) = (uint32_t)entry;  // EIP - entry point for ret
+    *(--stack_top) = 0x202;            // EFLAGS (enable interrupts)
+    *(--stack_top) = 0;                // EBP (initial value 0)
+    *(--stack_top) = 0;                // EDI (initial value 0)
+    *(--stack_top) = 0;                // ESI (initial value 0)
 
-    // Push entry point as return address for 'ret' instruction
-    // This will be the FIRST thing on the stack, so ret can pop it after popal and popfl
-    *--stack_top = (uint32_t)entry;
-
-    // Push eflags with interrupts enabled (this will be popped by popfl)
-    *--stack_top = 0x202;  // IF + reserved bit 1
-
-    // Push general registers (pushal pushes: eax, ecx, edx, ebx, esp, ebp, esi, edi)
-    // So we need to set them up in the same order for popal
-    *--stack_top = 0;  // eax
-    *--stack_top = 0;  // ecx
-    *--stack_top = 0;  // edx
-    *--stack_top = 0;  // ebx
-    *--stack_top = (uint32_t)stack_top;  // esp (ignored by popal)
-    *--stack_top = 0;  // ebp
-    *--stack_top = 0;  // esi
-    *--stack_top = 0;  // edi
-
-    // Update context.esp to point to the prepared stack (top of registers)
     task->context.esp = (uint32_t)stack_top;
 
     // For user tasks, allocate user stack
@@ -147,7 +133,7 @@ task_t* task_destroy(task_t *task) {
 
     // Free task structure
     kfree(task);
-
+    task = NULL;
     return ret;
 }
 
@@ -174,9 +160,11 @@ void switch_task(task_t * task) {
         task_set_state(current, TASK_READY);
 
         __asm__ volatile(
-            "pushfl\n"         // Push EFLAGS
-            "pushal\n"         // Push all general registers
-            "movl %%esp, %0\n" // Save ESP to current->context.esp
+            "pushfl\n"          // Push EFLAGS
+            "pushl %%ebp\n"     // Push EBP
+            "pushl %%edi\n"     // Push EDI
+            "pushl %%esi\n"     // Push ESI
+            "movl %%esp, %0\n"  // Save ESP to current->context.esp
             : "=m" (current->context.esp)
             :
             : "memory"
@@ -190,7 +178,9 @@ void switch_task(task_t * task) {
     // Restore new task context
     __asm__ volatile(
         "movl %0, %%esp\n"  // Load new task's ESP
-        "popal\n"           // Restore general registers
+        "popl %%esi\n"      // Restore ESI
+        "popl %%edi\n"      // Restore EDI
+        "popl %%ebp\n"      // Restore EBP
         "popfl\n"           // Restore EFLAGS
         "ret\n"             // Return to task entry point
         :

@@ -14,7 +14,7 @@ typedef enum task_state {
 
 // Register context for task switching
 typedef struct task_context {
-    uint32_t eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
+    uint32_t esp;  // Stack pointer pointing to saved context
 } task_context_t;
 
 // Process Control Block (PCB)

@@ -7,6 +7,7 @@
 #include "mm/paging.h"
 #include "multiboot.h"
 #include "task/task.h"
+#include "task/idle.h"
 
 
 
@@ -163,6 +164,7 @@ void print_hello_world() {
     for (int i=0;i<10;i++) {
         printk("%d: hello world!\n", i);
     }
+    task_destroy(current);
 }
 
 void test_task_management() {
@@ -176,10 +178,6 @@ void test_task_management() {
     // Test3. 删除一个task
     task_t* task2 = task_destroy(task1);
     printk("// =========== tmm test3: task_list_head==NULL? %d, task_list_tail==NULL? %d\n", task_list_head==NULL, task_list_tail==NULL);
-
-    // Test4. 测试task上下文切换
-    task_t* task4 = task_create(print_hello_world, 1);
-    switch_task(task4);
 }
 
 _Noreturn int kern_entry(uint32_t magic, uint32_t info_ptr){
@@ -196,6 +194,12 @@ _Noreturn int kern_entry(uint32_t magic, uint32_t info_ptr){
     test_memory_protect();
     test_task_management();
 
+    // 启动idle() 0号进程之后,内核代码的运行就不是线性的了,需要遵从调度器的约束.
+    task_t* idle_task = task_create(idle, 1);
+    switch_task(idle_task);
+
+    printk("-----------------0000000000--------------------->?????");
+    // 理论上,启用idle() 0号进程之后,下面的代码就永远不会执行了.
     while (1) {
         // printk("kernel main loop begin....\n");
         /*

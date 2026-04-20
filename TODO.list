@@ -16,7 +16,7 @@
   7.1 Setup TSS (Task State Segment) for x86 context switch
   7.2 Define task control block (PCB) struct: PID, state, kernel_stack, registers, context
   7.3 Implement task list management: task creation, destruction, state tracking
-  > 7.4 Implement context switch: save/restore registers and kernel stack
+  7.4 Implement context switch: save/restore registers and kernel stack
   > 7.5 Implement Round-Robin scheduler with time slice (e.g., 10ms)
   > 7.6 Implement main schedule loop: pick next task, switch context
   > 7.7 Setup timer interrupt for periodic scheduling
