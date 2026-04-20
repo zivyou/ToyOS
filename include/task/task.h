@@ -14,16 +14,7 @@ typedef enum task_state {
 
 // Register context for task switching
 typedef struct task_context {
-    uint32_t edi;
-    uint32_t esi;
-    uint32_t ebp;
-    uint32_t esp;
-    uint32_t ebx;
-    uint32_t edx;
-    uint32_t ecx;
-    uint32_t eax;
-    uint32_t eip;
-    uint32_t eflags;
+    uint32_t eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
 } task_context_t;
 
 // Process Control Block (PCB)
@@ -56,9 +47,13 @@ typedef struct task {
 extern task_t* task_list_head;
 extern task_t* task_list_tail;
 
+// current running task
+extern task_t* current;
+
 task_t * task_create(void (*entry)(void), uint32_t is_kernel_task);
 task_t * task_destroy(task_t *task);
 void task_set_state(task_t *task, task_state_t state);
 task_state_t task_get_state(task_t *task);
+void switch_task(task_t * task);
 
 #endif // TASK_H

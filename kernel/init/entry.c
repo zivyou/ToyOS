@@ -158,6 +158,13 @@ void test_memory_protect() {
     printk("\n=== Memory protection tests completed ===\n\n");
 }
 
+
+void print_hello_world() {
+    for (int i=0;i<10;i++) {
+        printk("%d: hello world!\n", i);
+    }
+}
+
 void test_task_management() {
     // Test1. task_list_head 初始化是空的;
     printk("// =========== tmm test1: task_list_head=%d\n", task_list_head);
@@ -169,6 +176,10 @@ void test_task_management() {
     // Test3. 删除一个task
     task_t* task2 = task_destroy(task1);
     printk("// =========== tmm test3: task_list_head==NULL? %d, task_list_tail==NULL? %d\n", task_list_head==NULL, task_list_tail==NULL);
+
+    // Test4. 测试task上下文切换
+    task_t* task4 = task_create(print_hello_world, 1);
+    switch_task(task4);
 }
 
 _Noreturn int kern_entry(uint32_t magic, uint32_t info_ptr){
@@ -193,5 +204,4 @@ _Noreturn int kern_entry(uint32_t magic, uint32_t info_ptr){
         hlt();
         // printk("kernel main loop end....\n");
     }
-    return 0;
 }
