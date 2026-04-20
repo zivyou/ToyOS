@@ -52,4 +52,13 @@ typedef struct task {
 // User stack size (8KB)
 #define USER_STACK_SIZE 0x2000
 
+// task list
+extern task_t* task_list_head;
+extern task_t* task_list_tail;
+
+task_t * task_create(void (*entry)(void), uint32_t is_kernel_task);
+task_t * task_destroy(task_t *task);
+void task_set_state(task_t *task, task_state_t state);
+task_state_t task_get_state(task_t *task);
+
 #endif // TASK_H

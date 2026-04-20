@@ -6,6 +6,7 @@
 #include "mm/heap.h"
 #include "mm/paging.h"
 #include "multiboot.h"
+#include "task/task.h"
 
 
 
@@ -158,7 +159,16 @@ void test_memory_protect() {
 }
 
 void test_task_management() {
-       
+    // Test1. task_list_head 初始化是空的;
+    printk("// =========== tmm test1: task_list_head=%d\n", task_list_head);
+
+    // Test2. 创建一个task
+    task_t* task1 = task_create(NULL, 1);
+    printk("// =========== tmm test2: task_list_head==task1? %d, task_list_tail==task1? %d\n", task_list_head==task1, task_list_tail==task1);
+
+    // Test3. 删除一个task
+    task_t* task2 = task_destroy(task1);
+    printk("// =========== tmm test3: task_list_head==NULL? %d, task_list_tail==NULL? %d\n", task_list_head==NULL, task_list_tail==NULL);
 }
 
 _Noreturn int kern_entry(uint32_t magic, uint32_t info_ptr){

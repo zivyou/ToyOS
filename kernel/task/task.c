@@ -7,6 +7,47 @@
 // Static PID counter
 static uint32_t next_pid = 1;
 
+// task list
+task_t* task_list_head = NULL;
+task_t* task_list_tail = NULL;
+
+void add_to_task_list(task_t * task) {
+    task->prev = task_list_tail;
+    task->next = NULL;
+
+    if (task_list_head == NULL) {
+        // 第一个节点
+        task_list_head = task;
+        task_list_tail = task;
+    } else {
+        task_list_tail->next = task;
+        task_list_tail = task;
+    }
+}
+
+task_t* remove_from_task_list(task_t * task) {
+    if (!task) return NULL;
+
+    // 从链表中移除
+    if (task->prev) {
+        task->prev->next = task->next;
+    } else {
+        // task是头节点
+        task_list_head = task->next;
+    }
+
+    if (task->next) {
+        task->next->prev = task->prev;
+    } else {
+        // task是尾节点
+        task_list_tail = task->prev;
+    }
+
+    task->prev = NULL;
+    task->next = NULL;
+    return task;
+}
+
 // Create a new task
 task_t* task_create(void (*entry)(void), uint32_t is_kernel_task) {
     // Allocate task structure
@@ -63,17 +104,21 @@ task_t* task_create(void (*entry)(void), uint32_t is_kernel_task) {
 
     printk("task_create: Created task %d with entry 0x%x\n",
            task->pid, (uint32_t)entry);
-
+    
+    add_to_task_list(task);
     return task;
 }
 
 // Destroy a task
-void task_destroy(task_t *task) {
+task_t* task_destroy(task_t *task) {
     if (!task) {
-        return;
+        return NULL;
     }
 
     printk("task_destroy: Destroying task %d\n", task->pid);
+
+    // 先移除链表引用
+    task_t* ret = remove_from_task_list(task);
 
     // Free kernel stack
     if (task->kernel_stack) {
@@ -87,6 +132,8 @@ void task_destroy(task_t *task) {
 
     // Free task structure
     kfree(task);
+
+    return ret;
 }
 
 // Set task state
