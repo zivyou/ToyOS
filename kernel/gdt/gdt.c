@@ -1,4 +1,5 @@
 #include "types.h"
+#include "gdt/tss.h"
 
 // 共2+2+1+1+1+1=8个字节
 typedef struct gdt_entry{
@@ -144,6 +145,28 @@ void set_tss_entry(uint32_t index, uint32_t ss0, uint32_t esp0) {
     tss.ts_gs = USER_DS;
 }
 
+// Initialize TSS with kernel stack pointer
+void tss_init(uint32_t kernel_stack) {
+    set_tss_entry(SEG_TSS, KERNEL_DS, kernel_stack);
+}
+
+// Update TSS kernel stack (ss0 and esp0)
+// Called when switching to a new task with different kernel stack
+void tss_set_kernel_stack(uint32_t ss0, uint32_t esp0) {
+    tss.ts_ss0 = ss0;
+    tss.ts_esp0 = esp0;
+}
+
+// Get TSS kernel stack pointer
+uint32_t tss_get_kernel_stack_esp0(void) {
+    return tss.ts_esp0;
+}
+
+// Get TSS kernel stack segment
+uint32_t tss_get_kernel_stack_ss0(void) {
+    return tss.ts_ss0;
+}
+
 void gdt_init(){
     gp.base = (uint32_t)&gdt;
     gp.limit = (uint16_t)(sizeof(gdt)-1);
@@ -154,7 +177,8 @@ void gdt_init(){
     set_gdt_entry(3, 0, 0xFFFFFFFF, 0x0A,1,3,1,0,0,1,1);
     // 用户模式数据段
     set_gdt_entry(4, 0, 0xFFFFFFFF, 0x02,1,3,1,0,0,1,1);
-    set_tss_entry(5, KERNEL_DS, 0);
+    // 初始化 TSS，初始内核栈设为 0（在任务创建时会设置）
+    tss_init(0);
     gdt_flush((uint32_t)&gp);
     tss_flush();
 }

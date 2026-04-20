@@ -13,17 +13,10 @@ extern void gdt_init();
 extern void idt_init();
 extern void intr_init();
 
-_Noreturn int kern_entry(uint32_t magic, uint32_t info_ptr){
-    terminal_init();
-    multiboot_init(magic, (multiboot_info_t*)info_ptr);
-    printk("hello world!\n");
-    printk("welcome!\n");
-    gdt_init();
-    idt_init();
-    mm_init();
-    __asm__ volatile ("sti");
+int kern_entry(uint32_t magic, uint32_t info_ptr);
 
-    // Test kmalloc/kfree
+void test_kmalloc() {
+// Test kmalloc/kfree
     printk("\n=== Testing kmalloc/kfree ===\n");
 
     // Test 1: Simple allocation
@@ -76,8 +69,10 @@ _Noreturn int kern_entry(uint32_t magic, uint32_t info_ptr){
     heap_print_stats();
 
     printk("\n=== kmalloc/kfree tests completed ===\n\n");
+}
 
-    // Memory protection tests
+void test_memory_protect() {
+// Memory protection tests
     printk("=== Testing Memory Protection ===\n");
 
     // Test 1: Get page flags for known addresses
@@ -85,6 +80,7 @@ _Noreturn int kern_entry(uint32_t magic, uint32_t info_ptr){
     uint32_t flags = paging_get_page_flags(0x1000);
     printk("  Page flags for 0x1000: 0x%x\n", flags);
 
+    void* ptr6 = kmalloc(8192); kfree(ptr6);
     flags = paging_get_page_flags((uint32_t)ptr6);
     printk("  Page flags for heap ptr6 (0x%x): 0x%x\n", ptr6, flags);
 
@@ -102,12 +98,14 @@ _Noreturn int kern_entry(uint32_t magic, uint32_t info_ptr){
 
     // Test 3: Make a page read-only
     printk("\nTest 3: Making page read-only...\n");
+    void* ptr5 = kmalloc(200);
     uint32_t test_addr = (uint32_t)ptr5;
     printk("  Original flags for 0x%x: 0x%x\n", test_addr,
            paging_get_page_flags(test_addr));
     paging_make_read_only(test_addr);
     printk("  After make_read_only: 0x%x\n",
            paging_get_page_flags(test_addr));
+    kfree(ptr5);
 
     // Test 4: Make it writable again
     printk("\nTest 4: Making page writable again...\n");
@@ -157,6 +155,26 @@ _Noreturn int kern_entry(uint32_t magic, uint32_t info_ptr){
     }
 
     printk("\n=== Memory protection tests completed ===\n\n");
+}
+
+void test_task_management() {
+       
+}
+
+_Noreturn int kern_entry(uint32_t magic, uint32_t info_ptr){
+    terminal_init();
+    multiboot_init(magic, (multiboot_info_t*)info_ptr);
+    printk("hello world!\n");
+    printk("welcome!\n");
+    gdt_init();
+    idt_init();
+    mm_init();
+    __asm__ volatile ("sti");
+
+    test_kmalloc();
+    test_memory_protect();
+    test_task_management();
+
     while (1) {
         // printk("kernel main loop begin....\n");
         /*

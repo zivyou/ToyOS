@@ -13,6 +13,9 @@ typedef long long       int64_t;
 
 typedef unsigned int size_t;
 
+// NULL pointer
+#define NULL ((void*)0)
+
 typedef struct registers_ptr_t {
     uint16_t ds;
     uint16_t padding1;
