@@ -1,6 +1,9 @@
 #include "types.h"
 #include "printk.h"
 #include "common.h"
+#include "task/task.h"
+#include "task/sched.h"
+#include "pit.h"
 
 typedef struct idt_entry{
     /* 8 bytes for each entry */
@@ -52,8 +55,10 @@ void register_irq_handler(int32_t irq_num, intr_handler_func handler) {
 }
 
 void clock_callback(registers_ptr_t* registers) {
-    // TODO: 时钟中断里要触发内核的调度器来调度线程（还没琢磨明白，等会再说）
-    printk("=========================> %d\n", registers->int_no);
+    // Timer interrupt - trigger the scheduler
+    // This is called at TIMER_FREQ_HZ (100 Hz = 10ms intervals)
+    printk("clock_callback ing..............\n");
+    schedule();
 }
 
 void keyboard_callback(registers_ptr_t* registers) {
@@ -200,6 +205,11 @@ void idt_init(){
     register_irq_handler(33, keyboard_callback);
     register_irq_handler(40, timer_callback);
     __asm__ volatile ("lidt %0"::"m"(idts_ptr));
+
+    // Initialize PIT AFTER IDT is loaded
+    // This ensures that timer interrupts are properly handled from the start
+    pit_init();
+
     enable_interrput();
 }
 

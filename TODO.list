@@ -12,12 +12,33 @@
   6.6 Implement virtual memory manager (page table manipulation);
   6.7 Implement kmalloc/kfree for kernel heap;
   6.8 Add memory protection and access control;
-7. task scheduling
+> 7. task scheduling
   7.1 Setup TSS (Task State Segment) for x86 context switch
   7.2 Define task control block (PCB) struct: PID, state, kernel_stack, registers, context
   7.3 Implement task list management: task creation, destruction, state tracking
   7.4 Implement context switch: save/restore registers and kernel stack
-  > 7.5 Implement Round-Robin scheduler with time slice (e.g., 10ms)
-  > 7.6 Implement main schedule loop: pick next task, switch context
-  > 7.7 Setup timer interrupt for periodic scheduling
+  7.5 Implement Round-Robin scheduler with time slice (10ms at 100Hz)
+  7.6 Implement main schedule loop: pick next task, switch context
+  7.7 Setup timer interrupt for periodic scheduling
   > 7.8 Implement sys_yield and other scheduling APIs
+8. future work
+  8.0 FIX: Add EBX register to save/restore (currently missing, callee-saved)
+  8.1 Implement system calls (int 0x80) for user-kernel communication
+  8.2 Add user mode tasks with privilege level 3
+  8.3 Implement fork/exec system calls
+  8.4 Add sleep/wake mechanism for task blocking
+  8.5 Implement inter-process communication (IPC)
+  8.6 Add file system support
+  8.7 Implement network stack
+  8.8 Add USB driver support
+  8.9 Implement multi-CPU (SMP) support
+  8.10 Add security features (ASLR, NX bit, etc.)
+
+Design Notes:
+- Idle task (PID 0) is created in scheduler_init() and never exits
+- Current task switching saves: ESP, ESI, EDI, EBP, EFLAGS (missing EBX!)
+- EAX, ECX, EDX are caller-saved (handled by compiler)
+- Stack layout (task_create): [ret_addr][EBP][EDI][ESI][EFLAGS]
+- Stack layout (switch_task restore): pop ret_addr→EAX, then ESI, EDI, EBP, popfl, jmp EAX
+- Timer interrupt (IRQ0/32) triggers schedule() every 10ms
+- Consider implementing kthreadd daemon for dynamic task creation

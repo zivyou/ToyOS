@@ -7,6 +7,7 @@
 #include "mm/paging.h"
 #include "multiboot.h"
 #include "task/task.h"
+#include "task/sched.h"
 #include "task/idle.h"
 
 
@@ -172,7 +173,7 @@ void test_task_management() {
     printk("// =========== tmm test1: task_list_head=%d\n", task_list_head);
 
     // Test2. 创建一个task
-    task_t* task1 = task_create(NULL, 1);
+    task_t* task1 = task_create(print_hello_world, 1);
     printk("// =========== tmm test2: task_list_head==task1? %d, task_list_tail==task1? %d\n", task_list_head==task1, task_list_tail==task1);
 
     // Test3. 删除一个task
@@ -188,24 +189,17 @@ _Noreturn int kern_entry(uint32_t magic, uint32_t info_ptr){
     gdt_init();
     idt_init();
     mm_init();
-    __asm__ volatile ("sti");
 
     test_kmalloc();
     test_memory_protect();
-    test_task_management();
 
-    // 启动idle() 0号进程之后,内核代码的运行就不是线性的了,需要遵从调度器的约束.
-    task_t* idle_task = task_create(idle, 1);
-    switch_task(idle_task);
+    // test_task_management();  // Test task management before scheduler starts
 
-    printk("-----------------0000000000--------------------->?????");
-    // 理论上,启用idle() 0号进程之后,下面的代码就永远不会执行了.
+    scheduler_init();  // Initialize scheduler and switch to idle task (never returns)
+
+    // Should never reach here - scheduler_init switches to idle which never returns
+    printk("ERROR: Returned from scheduler_init! This should never happen!\n");
     while (1) {
-        // printk("kernel main loop begin....\n");
-        /*
-        https://stackoverflow.com/questions/54724812/os-dev-general-protection-fault-problem-after-setting-up-idt
-        */
         hlt();
-        // printk("kernel main loop end....\n");
     }
 }

@@ -1,11 +1,12 @@
 #include "task/task.h"
+#include "task/sched.h"
 #include "gdt/tss.h"
 #include "printk.h"
 #include "mm/heap.h"
 #include "mm/mm.h"
 
-// Static PID counter
-static uint32_t next_pid = 1;
+// Static PID counter (starts from 0 for idle task)
+static uint32_t next_pid = 0;
 
 // task list
 task_t* task_list_head = NULL;
@@ -65,6 +66,8 @@ task_t* task_create(void (*entry)(void), uint32_t is_kernel_task) {
     task->entry = entry;
     task->next = NULL;
     task->prev = NULL;
+    task->time_slice = DEFAULT_TIME_SLICE;
+    task->priority = 0;
 
     // Allocate kernel stack
     task->kernel_stack_size = KERNEL_STACK_SIZE;
@@ -75,16 +78,31 @@ task_t* task_create(void (*entry)(void), uint32_t is_kernel_task) {
         return NULL;
     }
 
-    // Pre-stack context data in the correct layout
-    // Stack layout (from low to high address): EIP, EFLAGS, EBP, EDI, ESI
-    // ESP should point to the bottom (below ESI) so pop can restore in correct order
+    // Pre-stack context data for task switching
+    // Stack layout (from high to low address, stack grows down):
+    //
+    //   [higher addresses...]
+    //   [entry]      - Return address for ret
+    //   [0]          - saved EBP
+    //   [0]          - saved EDI
+    //   [0]          - saved ESI
+    //   [0x202]      - EFLAGS (interrupts enabled)
+    //   [lower addresses...]
+    //
+    // When switch_task is called:
+    //   - We pop ESI, EDI, EBP, EFLAGS (restoring them)
+    //   - Then jmp jumps to entry point
+
     uint32_t *stack_top = (uint32_t*)(task->kernel_stack + KERNEL_STACK_SIZE);
 
-    *(--stack_top) = (uint32_t)entry;  // EIP - entry point for ret
-    *(--stack_top) = 0x202;            // EFLAGS (enable interrupts)
-    *(--stack_top) = 0;                // EBP (initial value 0)
-    *(--stack_top) = 0;                // EDI (initial value 0)
-    *(--stack_top) = 0;                // ESI (initial value 0)
+    // Saved registers (will be restored in switch_task)
+    *(--stack_top) = 0x202;            // EFLAGS (IF=1, IOPL=0 - interrupts enabled)
+    *(--stack_top) = 0;                // ESI
+    *(--stack_top) = 0;                // EDI
+    *(--stack_top) = 0;                // EBP
+
+    // Return address for ret
+    *(--stack_top) = (uint32_t)entry;  // Task entry point
 
     task->context.esp = (uint32_t)stack_top;
 
@@ -110,9 +128,23 @@ task_t* task_create(void (*entry)(void), uint32_t is_kernel_task) {
     return task;
 }
 
+// External idle task reference
+extern task_t* idle_task;
+
 // Destroy a task
 task_t* task_destroy(task_t *task) {
     if (!task) {
+        return NULL;
+    }
+
+    // Cannot destroy the idle task
+    if (task == idle_task) {
+        printk("task_destroy: Cannot destroy idle task (PID %d)!\n", task->pid);
+        return NULL;
+    }
+
+    if (task->state != TASK_EXITED) {
+        printk("task_destroy failed! task state: %d\n", task->state);
         return NULL;
     }
 
@@ -160,11 +192,11 @@ void switch_task(task_t * task) {
         task_set_state(current, TASK_READY);
 
         __asm__ volatile(
-            "pushfl\n"          // Push EFLAGS
-            "pushl %%ebp\n"     // Push EBP
-            "pushl %%edi\n"     // Push EDI
             "pushl %%esi\n"     // Push ESI
-            "movl %%esp, %0\n"  // Save ESP to current->context.esp
+            "pushl %%edi\n"     // Push EDI
+            "pushl %%ebp\n"     // Push EBP
+            "pushfl\n"          // Push EFLAGS (important for interrupt state)
+            "movl %%esp, %0\n"  // Save ESP
             : "=m" (current->context.esp)
             :
             : "memory"
@@ -175,16 +207,19 @@ void switch_task(task_t * task) {
     task_set_state(task, TASK_RUNNING);
     current = task;
 
-    // Restore new task context
+    // Restore new task context and jump to entry point
+    // Stack layout: [ret_addr][EBP][EDI][ESI][EFLAGS]
+    // ESP points to ret_addr
     __asm__ volatile(
-        "movl %0, %%esp\n"  // Load new task's ESP
+        "movl %0, %%esp\n"  // Load new task's ESP (points to ret_addr)
+        "popl %%eax\n"      // Pop ret_addr into EAX
         "popl %%esi\n"      // Restore ESI
         "popl %%edi\n"      // Restore EDI
         "popl %%ebp\n"      // Restore EBP
         "popfl\n"           // Restore EFLAGS
-        "ret\n"             // Return to task entry point
+        "jmp *%%eax\n"      // Jump to entry point
         :
         : "r" (task->context.esp)
-        : "memory"
+        : "eax", "memory"
     );
 }

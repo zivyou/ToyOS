@@ -155,6 +155,8 @@ ISR_NOERRCODE 255
     .extern irq_handle
 common_irq:
     pusha
+    movl %ds, %eax
+    pushl %eax               # 保存原始ds（与common_isr保持一致）
     mov $0x10, %ax
     mov %ax, %ds
     mov %ax, %ss
@@ -177,8 +179,8 @@ common_irq:
     call irq_handle
     addl $4, %esp
 
-    mov $0x10, %bx
-    mov %bx, %ds
+    popl %ebx               # 弹出保存的ds
+    mov %bx, %ds            # 恢复原始ds
     mov %bx, %ss
     mov %bx, %es
     mov %bx, %fs

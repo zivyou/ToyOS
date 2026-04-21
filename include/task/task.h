@@ -35,6 +35,10 @@ typedef struct task {
     // For linked list management
     struct task *next;             // Next task in list
     struct task *prev;             // Previous task in list
+
+    // For Round-Robin scheduling
+    uint32_t time_slice;           // Remaining time slice
+    uint32_t priority;             // Task priority (reserved for future use)
 } task_t;
 
 // Kernel stack size (8KB)
