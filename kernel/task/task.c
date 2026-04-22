@@ -79,29 +79,27 @@ task_t* task_create(void (*entry)(void), uint32_t is_kernel_task) {
     }
 
     // Pre-stack context data for task switching
-    // Stack layout (from high to low address, stack grows down):
+    // Stack layout (from low to high address, stack grows down):
     //
-    //   [higher addresses...]
-    //   [entry]      - Return address for ret
-    //   [0]          - saved EBP
-    //   [0]          - saved EDI
-    //   [0]          - saved ESI
-    //   [0x202]      - EFLAGS (interrupts enabled)
-    //   [lower addresses...]
+    //   entry      - Entry point address for jmp
+    //   EBX        - Saved EBX (callee-saved)
+    //   EBP        - Saved EBP (callee-saved)
+    //   EDI        - Saved EDI (callee-saved)
+    //   ESI        - Saved ESI (callee-saved)
+    //   EFLAGS     - Saved EFLAGS (IF=1, interrupts enabled)
     //
-    // When switch_task is called:
-    //   - We pop ESI, EDI, EBP, EFLAGS (restoring them)
-    //   - Then jmp jumps to entry point
+    // ESP points to entry when task is ready to run
 
     uint32_t *stack_top = (uint32_t*)(task->kernel_stack + KERNEL_STACK_SIZE);
 
-    // Saved registers (will be restored in switch_task)
+    // Saved registers (must match switch_task restore order)
     *(--stack_top) = 0x202;            // EFLAGS (IF=1, IOPL=0 - interrupts enabled)
     *(--stack_top) = 0;                // ESI
     *(--stack_top) = 0;                // EDI
     *(--stack_top) = 0;                // EBP
+    *(--stack_top) = 0;                // EBX
 
-    // Return address for ret
+    // Entry point for jmp
     *(--stack_top) = (uint32_t)entry;  // Task entry point
 
     task->context.esp = (uint32_t)stack_top;
@@ -192,9 +190,10 @@ void switch_task(task_t * task) {
         task_set_state(current, TASK_READY);
 
         __asm__ volatile(
-            "pushl %%esi\n"     // Push ESI
-            "pushl %%edi\n"     // Push EDI
             "pushl %%ebp\n"     // Push EBP
+            "pushl %%ebx\n"     // Push EBX
+            "pushl %%edi\n"     // Push EDI
+            "pushl %%esi\n"     // Push ESI
             "pushfl\n"          // Push EFLAGS (important for interrupt state)
             "movl %%esp, %0\n"  // Save ESP
             : "=m" (current->context.esp)
@@ -208,14 +207,15 @@ void switch_task(task_t * task) {
     current = task;
 
     // Restore new task context and jump to entry point
-    // Stack layout: [ret_addr][EBP][EDI][ESI][EFLAGS]
-    // ESP points to ret_addr
+    // Stack layout (from low to high): [entry][EBX][EBP][EDI][ESI][EFLAGS]
+    // ESP points to entry
     __asm__ volatile(
-        "movl %0, %%esp\n"  // Load new task's ESP (points to ret_addr)
-        "popl %%eax\n"      // Pop ret_addr into EAX
-        "popl %%esi\n"      // Restore ESI
-        "popl %%edi\n"      // Restore EDI
+        "movl %0, %%esp\n"  // Load new task's ESP (points to entry)
+        "popl %%eax\n"      // Pop entry into EAX
+        "popl %%ebx\n"      // Restore EBX
         "popl %%ebp\n"      // Restore EBP
+        "popl %%edi\n"      // Restore EDI
+        "popl %%esi\n"      // Restore ESI
         "popfl\n"           // Restore EFLAGS
         "jmp *%%eax\n"      // Jump to entry point
         :
