@@ -92,15 +92,13 @@ task_t* task_create(void (*entry)(void), uint32_t is_kernel_task) {
 
     uint32_t *stack_top = (uint32_t*)(task->kernel_stack + KERNEL_STACK_SIZE);
 
-    // Saved registers (must match switch_task restore order)
+    // Saved registers (must match switch_task push order)
     *(--stack_top) = 0x202;            // EFLAGS (IF=1, IOPL=0 - interrupts enabled)
     *(--stack_top) = 0;                // ESI
     *(--stack_top) = 0;                // EDI
     *(--stack_top) = 0;                // EBP
     *(--stack_top) = 0;                // EBX
-
-    // Entry point for jmp
-    *(--stack_top) = (uint32_t)entry;  // Task entry point
+    *(--stack_top) = (uint32_t)entry;  // Entry point (acts like ret_addr)
 
     task->context.esp = (uint32_t)stack_top;
 
@@ -185,16 +183,19 @@ task_state_t task_get_state(task_t *task) {
 void switch_task(task_t * task) {
     if (!task || task == current) return;
 
+    // Use call to push return address onto stack before saving context
+    __asm__ volatile("call 1f\n1:");
+
     // Save current task state
     if (current) {
         task_set_state(current, TASK_READY);
 
         __asm__ volatile(
-            "pushl %%ebp\n"     // Push EBP
-            "pushl %%ebx\n"     // Push EBX
-            "pushl %%edi\n"     // Push EDI
+            "pushfl\n"          // Push EFLAGS (first, so it's last to be popped)
             "pushl %%esi\n"     // Push ESI
-            "pushfl\n"          // Push EFLAGS (important for interrupt state)
+            "pushl %%edi\n"     // Push EDI
+            "pushl %%ebp\n"     // Push EBP
+            "pushl %%ebx\n"     // Push EBX (last before ret_addr)
             "movl %%esp, %0\n"  // Save ESP
             : "=m" (current->context.esp)
             :
@@ -207,17 +208,18 @@ void switch_task(task_t * task) {
     current = task;
 
     // Restore new task context and jump to entry point
-    // Stack layout (from low to high): [entry][EBX][EBP][EDI][ESI][EFLAGS]
-    // ESP points to entry
+    // Stack layout for first-run tasks: [entry][EBX][EBP][EDI][ESI][EFLAGS]
+    // Stack layout for already-run tasks: [ret_addr][EBX][EBP][EDI][ESI][EFLAGS]
+    // ESP points to entry/ret_addr
     __asm__ volatile(
-        "movl %0, %%esp\n"  // Load new task's ESP (points to entry)
-        "popl %%eax\n"      // Pop entry into EAX
+        "movl %0, %%esp\n"  // Load new task's ESP (points to entry/ret_addr)
+        "popl %%eax\n"      // Pop entry/ret_addr into EAX
         "popl %%ebx\n"      // Restore EBX
         "popl %%ebp\n"      // Restore EBP
         "popl %%edi\n"      // Restore EDI
         "popl %%esi\n"      // Restore ESI
         "popfl\n"           // Restore EFLAGS
-        "jmp *%%eax\n"      // Jump to entry point
+        "jmp *%%eax\n"      // Jump to entry/ret_addr
         :
         : "r" (task->context.esp)
         : "eax", "memory"

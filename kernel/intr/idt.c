@@ -58,7 +58,6 @@ void clock_callback(registers_ptr_t* registers) {
     // Timer interrupt - trigger the scheduler
     // This is called at TIMER_FREQ_HZ (100 Hz = 10ms intervals)
     printk("clock_callback ing..............\n");
-    schedule();
 }
 
 void keyboard_callback(registers_ptr_t* registers) {

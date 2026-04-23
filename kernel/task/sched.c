@@ -10,6 +10,9 @@ task_t* idle_task = NULL;
 // Flag indicating if reschedule is needed
 static volatile uint8_t need_resched_flag = 0;
 
+// Task to switch to after interrupt handling
+volatile task_t* task_to_switch = NULL;
+
 /**
  * scheduler_init - Initialize the scheduler
  *
@@ -101,14 +104,17 @@ void schedule(void) {
 
     if (!next) {
         // No tasks to run, stay on current or go idle
+        task_to_switch = NULL;
         return;
     }
 
     if (next != current) {
-        // Switch to next task
-        printk("schedule: Switching from task %d to task %d\n",
+        // Set task to switch to - will be handled after interrupt restore
+        printk("schedule: Will switch from task %d to task %d\n",
                current ? current->pid : 0, next->pid);
-        switch_task(next);
+        task_to_switch = next;
+    } else {
+        task_to_switch = NULL;
     }
 }
 

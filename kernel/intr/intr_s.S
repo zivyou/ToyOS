@@ -153,6 +153,10 @@ ISR_NOERRCODE 31
 ISR_NOERRCODE 255
 
     .extern irq_handle
+    .extern schedule
+    .extern switch_task
+    .extern task_to_switch
+    .extern current
 common_irq:
     pusha
     movl %ds, %eax
@@ -168,7 +172,7 @@ common_irq:
     /**
     call 指令会自动将eip寄存器压入栈, call指令等价于：
        sub $4, %esp
-       movl %eip, (%esp) 
+       movl %eip, (%esp)
        jmp function
     ret指令会先弹出一个值到eip，然后跳转到eip的地方继续执行
     而iret指令是interrupt return，会在跳转前自动做一些事情： (1)实模式下，从栈中恢复eip,cs和eflags；(2)保护模式下，依据eflags寄存器的内容，采取不同的返回策略；
@@ -179,25 +183,45 @@ common_irq:
     call irq_handle
     addl $4, %esp
 
-    popl %ebx               # 弹出保存的ds
-    mov %bx, %ds            # 恢复原始ds
+    # Restore segment registers (saved before pusha)
+    popl %ebx
+    mov %bx, %ds
     mov %bx, %ss
     mov %bx, %es
     mov %bx, %fs
     mov %bx, %gs
 
+    # Restore general registers
     popa
-    /**
-    上面的irq_handler_宏定义里我们压入了一个num，要记得弹出来。同时，irq系统都会自动帮我们压入一个errno（隐式压入的），因此我们需要弹8个字节出来
-    */
-    addl $8, %esp
-    /**
-    https://stackoverflow.com/questions/10581224/why-does-iret-from-a-page-fault-handler-generate-interrupt-13-general-protectio
-    */
+    addl $8, %esp  # Remove interrupt number and error code
+
+    # Check if we need to switch tasks after interrupt return
+    movl task_to_switch, %eax
+    testl %eax, %eax
+    jz 1f  # If no task to switch, return normally
+
+    # We have a task to switch to - do it inline
+    # Save current task ESP first
+    movl %esp, %edx
+    movl current, %ecx
+    testl %ecx, %ecx
+    jz 2f  # If no current task, skip saving
+    movl %edx, 16(%ecx)  # Save ESP to current->context.esp
+2:
+    # Now switch to new task
+    movl 16(%eax), %esp  # Load new task ESP
+    popl %eax  # Pop entry/ret_addr to EAX
+    popl %ebx  # Restore EBX
+    popl %ebp  # Restore EBP
+    popl %edi  # Restore EDI
+    popl %esi  # Restore ESI
+    popfl  # Restore EFLAGS
+
+
+
+# Return from interrupt normally
+1:
     iret
-
-
-
 IRQ_HANDLES 32
 IRQ_HANDLES 33
 IRQ_HANDLES 34

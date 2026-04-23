@@ -13,15 +13,15 @@ _Noreturn void idle() {
     printk("idle: Idle task started\n");
 
     while (1) {
-        // Try to find a next task to run
-        task_t* next = pick_next_task();
+        // Run scheduler to check for task switches
+        // This is called after timer interrupts set time_slice = 0
+        schedule();
 
-        if (next && next != current) {
-            // Switch to the next task
-            switch_task(next);
-        } else {
-            // No other tasks to run, halt the CPU until next interrupt
+        // If we're still on idle task after schedule, no other tasks are ready
+        if (current == idle_task) {
+            // Halt the CPU until next interrupt
             hlt();
         }
+        // Otherwise, we switched to another task, and will come back here when needed
     }
 }
