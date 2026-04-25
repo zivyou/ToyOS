@@ -57,7 +57,11 @@ void register_irq_handler(int32_t irq_num, intr_handler_func handler) {
 void clock_callback(registers_ptr_t* registers) {
     // Timer interrupt - trigger the scheduler
     // This is called at TIMER_FREQ_HZ (100 Hz = 10ms intervals)
-    printk("clock_callback ing..............\n");
+    // do nothing
+    /**
+     * 时钟中断的处理过程: 这里时钟中断就不需要做额外的处理了. 进程的切换(schedule)已经在中断处理的汇编代码中处理了.
+     * linux内核在这里应该会维护jiffies计数, 不过我们这个系统如此粗糙,暂时还用不上;
+     */
 }
 
 void keyboard_callback(registers_ptr_t* registers) {
@@ -80,7 +84,12 @@ void keyboard_callback(registers_ptr_t* registers) {
 }
 
 void timer_callback(registers_ptr_t* registers) {
-    printk("on timer callback: %d\n", registers->int_no);
+    // do nothing
+}
+
+void system_call(registers_ptr_t registers) __attribute__((cdecl));
+void system_call(registers_ptr_t registers) {
+    printk("on system call: %d\n", registers.int_no);
 }
 
 void init_interrupt_chip() {
@@ -203,6 +212,7 @@ void idt_init(){
     register_irq_handler(32, clock_callback);
     register_irq_handler(33, keyboard_callback);
     register_irq_handler(40, timer_callback);
+    register_irq_handler(128, system_call);
     __asm__ volatile ("lidt %0"::"m"(idts_ptr));
 
     // Initialize PIT AFTER IDT is loaded

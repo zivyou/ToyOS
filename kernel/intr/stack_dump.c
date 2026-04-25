@@ -10,10 +10,10 @@ void stack_dump(registers_ptr_t* registers) {
      * ----- err_code
      * -----
      */
-    printk("Oops! the kernel panic: esp: 0x%x\n", registers->esp);
+    printk("\nOops! the kernel panic: esp: 0x%x\n", registers->esp);
     printk("int-0x%x, cs=0x%x, eip=0x%x, ds=0x%x, eflags=0x%x, eax=0x%x, ebx=0x%x, ecx=0x%x, edx=0x%x, err_code=0x%x\n, \
         esp=0x%x,  ss=0x%x\
-        ",
+        \n",
         registers->int_no, registers->cs, registers->eip, registers->ds, registers->eflags, registers->eax
             , registers->ebx, registers->ecx, registers->edx, registers->err_codes, registers->esp, registers->ss);
 //    enable_interrput();

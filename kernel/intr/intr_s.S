@@ -153,8 +153,6 @@ ISR_NOERRCODE 31
 ISR_NOERRCODE 255
 
     .extern irq_handle
-    .extern schedule
-    .extern switch_task
     .extern task_to_switch
     .extern current
 common_irq:
@@ -238,6 +236,7 @@ IRQ_HANDLES 44
 IRQ_HANDLES 45
 IRQ_HANDLES 46
 IRQ_HANDLES 47
+IRQ_HANDLES 128 /* 0x80, 系统调用, system call */
 
 
 // 有一些个中断号应该干什么事情，是CPU定义的，咱没得选。
