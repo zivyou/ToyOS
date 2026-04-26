@@ -1,6 +1,9 @@
 #include "types.h"
 #include "gdt/tss.h"
 
+// Maximum number of tasks (same as in task.h)
+#define NR_TASKS 64
+
 // 共2+2+1+1+1+1=8个字节
 typedef struct gdt_entry{
     uint16_t limit_low; // limit: 0-15    // 0-15
@@ -31,7 +34,9 @@ typedef struct gdt_ptr{
     uint32_t base;
 }__attribute__((packed)) gdt_prt ;
 
-static struct gdt_entry gdt[6];
+// GDT needs space for: NULL, KTEXT, KDATA, UTEXT, UDATA + NR_TASKS TSS entries
+#define GDT_ENTRIES (5 + NR_TASKS)
+static struct gdt_entry gdt[GDT_ENTRIES];
 struct gdt_ptr gp;
 
 void set_gdt_entry(int index, uint32_t base, uint32_t limit, uint32_t type, uint32_t s, uint32_t dpl, uint32_t p, uint32_t avl, uint32_t o, uint32_t b, uint32_t g){
@@ -119,7 +124,7 @@ void set_gdt_entry_for_tss(int32_t index, uint32_t base, uint32_t limit, uint32_
 
     gdt[index].p = (access>>7) & 0x01;
     gdt[index].avl       = 0;
-    gdt[index].limit_high = (limit >> 28) & 0x0F;
+    gdt[index].limit_high = (limit >> 16) & 0x0F;  // Fixed: was >> 28, should be >> 16
     gdt[index].o    = (gran>>5) & 0x01;
     gdt[index].b    = (gran>>6) & 0x01;
     gdt[index].g    = (gran>>7) & 0x01;
@@ -177,8 +182,11 @@ void gdt_init(){
     set_gdt_entry(3, 0, 0xFFFFFFFF, 0x0A,1,3,1,0,0,1,1);
     // 用户模式数据段
     set_gdt_entry(4, 0, 0xFFFFFFFF, 0x02,1,3,1,0,0,1,1);
-    // 初始化 TSS，初始内核栈设为 0（在任务创建时会设置）
-    tss_init(0);
+
+    // Clear remaining GDT entries (TSS slots)
+    for (int i = 5; i < GDT_ENTRIES; i++) {
+        set_gdt_entry(i, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+    }
+
     gdt_flush((uint32_t)&gp);
-    tss_flush();
 }

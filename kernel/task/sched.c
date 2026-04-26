@@ -7,11 +7,19 @@
 // Global idle task (PID 0)
 task_t* idle_task = NULL;
 
-// Flag indicating if reschedule is needed
-static volatile uint8_t need_resched_flag = 0;
-
-// Task to switch to after interrupt handling
+// Task to switch to (set by schedule, checked by interrupt handler)
 volatile task_t* task_to_switch = NULL;
+
+_Noreturn void entry() {
+    printk("--------------------------->\n");
+    // __asm__ volatile (
+    //     "int $0x80"
+    // );
+    while (1) {
+        printk("in entry.........................>\n");
+        hlt();                                                                                                                 
+    }  
+}
 
 /**
  * scheduler_init - Initialize the scheduler
@@ -30,6 +38,8 @@ void scheduler_init(void) {
         printk("scheduler_init: FATAL - Failed to create idle task!\n");
         while (1) { hlt(); }  // Hang forever
     }
+
+    task_create(entry, 1);
 
     printk("scheduler_init: Switching to idle task (PID %d)\n", idle_task->pid);
 
@@ -84,8 +94,11 @@ task_t* pick_next_task(void) {
  * schedule - Main scheduler function
  *
  * Called from timer interrupt to perform task switching.
+ * Sets task_to_switch flag; actual switching is done by interrupt handler.
  */
 void schedule(void) {
+    if (current == NULL) return;
+
     // Decrement current task's time slice
     if (current && current->state == TASK_RUNNING) {
         current->time_slice--;
@@ -103,13 +116,13 @@ void schedule(void) {
     task_t* next = pick_next_task();
 
     if (!next) {
-        // No tasks to run, stay on current or go idle
+        // No tasks to run, stay on current
         task_to_switch = NULL;
         return;
     }
 
     if (next != current) {
-        // Set task to switch to - will be handled after interrupt restore
+        // Set task to switch - will be handled by interrupt handler
         printk("schedule: Will switch from task %d to task %d\n",
                current ? current->pid : 0, next->pid);
         task_to_switch = next;

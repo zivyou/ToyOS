@@ -154,7 +154,7 @@ ISR_NOERRCODE 255
 
     .extern irq_handle
     .extern task_to_switch
-    .extern current
+    .extern task_get_tss_selector
 common_irq:
     pusha
     movl %ds, %eax
@@ -193,31 +193,28 @@ common_irq:
     popa
     addl $8, %esp  # Remove interrupt number and error code
 
-    # Check if we need to switch tasks after interrupt return
+    # Check if we need to switch tasks
     movl task_to_switch, %eax
     testl %eax, %eax
     jz 1f  # If no task to switch, return normally
 
-    # We have a task to switch to - do it inline
-    # Save current task ESP first
-    movl %esp, %edx
-    movl current, %ecx
-    testl %ecx, %ecx
-    jz 2f  # If no current task, skip saving
-    movl %edx, 16(%ecx)  # Save ESP to current->context.esp
-2:
-    # Now switch to new task
-    movl 16(%eax), %esp  # Load new task ESP
-    popl %eax  # Pop entry/ret_addr to EAX
-    popl %ebx  # Restore EBX
-    popl %ebp  # Restore EBP
-    popl %edi  # Restore EDI
-    popl %esi  # Restore ESI
-    popfl  # Restore EFLAGS
+    # We have a task to switch - use hardware TSS switching
+    # Call C helper to get TSS selector (returns 16-bit selector in EAX)
+    pushl %eax
+    call task_get_tss_selector
+    addl $4, %esp
 
+    # Hardware task switch using ljmp to TSS
+    # EAX contains the TSS selector (16-bit value)
+    # We need to build a far jump target: offset (0) + selector (16-bit)
+    # Memory layout: [offset (32 bits)] [selector (16 bits)]
+    # Stack grows down, so we push selector first, then offset
 
+    pushw %ax         # Push selector (16 bits)
+    pushl $0          # Push offset (32 bits)
+    ljmp *(%esp)      # Far jump to TSS
 
-# Return from interrupt normally
+# Return from interrupt normally (no task switch)
 1:
     iret
 IRQ_HANDLES 32

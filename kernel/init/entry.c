@@ -181,13 +181,6 @@ void test_task_management() {
     printk("// =========== tmm test3: task_list_head==NULL? %d, task_list_tail==NULL? %d\n", task_list_head==NULL, task_list_tail==NULL);
 }
 
-void test_system_call() {
-    // 内核态下是不能调用int指令的:-)
-    printk("// -------------------- test system call---------------------------");
-    __asm__ volatile (
-        "int $0x80"
-    );
-}
 
 _Noreturn int kern_entry(uint32_t magic, uint32_t info_ptr){
     terminal_init();
@@ -203,7 +196,6 @@ _Noreturn int kern_entry(uint32_t magic, uint32_t info_ptr){
 
     // test_task_management();  // Test task management before scheduler starts
 
-    // test_system_call();
 
     scheduler_init();  // Initialize scheduler and switch to idle task (never returns)
 

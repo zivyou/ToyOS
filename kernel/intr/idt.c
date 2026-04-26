@@ -57,11 +57,8 @@ void register_irq_handler(int32_t irq_num, intr_handler_func handler) {
 void clock_callback(registers_ptr_t* registers) {
     // Timer interrupt - trigger the scheduler
     // This is called at TIMER_FREQ_HZ (100 Hz = 10ms intervals)
-    // do nothing
-    /**
-     * 时钟中断的处理过程: 这里时钟中断就不需要做额外的处理了. 进程的切换(schedule)已经在中断处理的汇编代码中处理了.
-     * linux内核在这里应该会维护jiffies计数, 不过我们这个系统如此粗糙,暂时还用不上;
-     */
+    // Call schedule to check if we need to switch tasks
+    printk("on clock_callback...... \n");
 }
 
 void keyboard_callback(registers_ptr_t* registers) {
@@ -242,6 +239,7 @@ void irq_handle(registers_ptr_t* registers) {
     }
     outb(IO_PIC1, 0x20);
 
+    schedule();
     // printk("irq handled orver...\n");
     // enable_interrput();
 }
