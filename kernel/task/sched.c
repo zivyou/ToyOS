@@ -13,6 +13,12 @@ static volatile uint8_t need_resched_flag = 0;
 // Task to switch to after interrupt handling
 volatile task_t* task_to_switch = NULL;
 
+void test_task_entry() {
+    while (1) {
+        printk("in test_task_entry...........\n");
+        hlt();
+    }
+}
 /**
  * scheduler_init - Initialize the scheduler
  *
@@ -30,6 +36,8 @@ void scheduler_init(void) {
         printk("scheduler_init: FATAL - Failed to create idle task!\n");
         while (1) { hlt(); }  // Hang forever
     }
+
+    task_t* test_task = task_create(test_task_entry, 1);
 
     printk("scheduler_init: Switching to idle task (PID %d)\n", idle_task->pid);
 

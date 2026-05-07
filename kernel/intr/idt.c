@@ -62,6 +62,7 @@ void clock_callback(registers_ptr_t* registers) {
      * 时钟中断的处理过程: 这里时钟中断就不需要做额外的处理了. 进程的切换(schedule)已经在中断处理的汇编代码中处理了.
      * linux内核在这里应该会维护jiffies计数, 不过我们这个系统如此粗糙,暂时还用不上;
      */
+    // printk("on clock_callback....\n");
 }
 
 void keyboard_callback(registers_ptr_t* registers) {

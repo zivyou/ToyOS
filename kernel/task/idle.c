@@ -16,7 +16,7 @@ _Noreturn void idle() {
         // Run scheduler to check for task switches
         // This is called after timer interrupts set time_slice = 0
         schedule();
-
+        printk("in idle loop...............\n");
         // If we're still on idle task after schedule, no other tasks are ready
         if (current == idle_task) {
             // Halt the CPU until next interrupt

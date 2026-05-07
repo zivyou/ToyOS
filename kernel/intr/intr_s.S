@@ -196,16 +196,17 @@ common_irq:
     # Check if we need to switch tasks after interrupt return
     movl task_to_switch, %eax
     testl %eax, %eax
-    jz 1f  # If no task to switch, return normally
+    jz _ret_from_interrupt  # If no task to switch, return normally
 
     # We have a task to switch to - do it inline
     # Save current task ESP first
     movl %esp, %edx
     movl current, %ecx
     testl %ecx, %ecx
-    jz 2f  # If no current task, skip saving
+    jz _switch_to_next_task  # If no current task, skip saving
     movl %edx, 16(%ecx)  # Save ESP to current->context.esp
-2:
+    jmp _ret_from_interrupt
+_switch_to_next_task:
     # Now switch to new task
     movl 16(%eax), %esp  # Load new task ESP
     popl %eax  # Pop entry/ret_addr to EAX
@@ -218,7 +219,7 @@ common_irq:
 
 
 # Return from interrupt normally
-1:
+_ret_from_interrupt:
     iret
 IRQ_HANDLES 32
 IRQ_HANDLES 33
