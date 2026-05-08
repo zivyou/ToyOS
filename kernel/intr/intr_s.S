@@ -155,6 +155,7 @@ ISR_NOERRCODE 255
     .extern irq_handle
     .extern task_to_switch
     .extern current
+    .extern tss_set_kernel_stack
 common_irq:
     pusha
     movl %ds, %eax
@@ -167,21 +168,49 @@ common_irq:
     mov %ax, %gs
 
     pushl %esp
-    /**
-    call 指令会自动将eip寄存器压入栈, call指令等价于：
-       sub $4, %esp
-       movl %eip, (%esp)
-       jmp function
-    ret指令会先弹出一个值到eip，然后跳转到eip的地方继续执行
-    而iret指令是interrupt return，会在跳转前自动做一些事情： (1)实模式下，从栈中恢复eip,cs和eflags；(2)保护模式下，依据eflags寄存器的内容，采取不同的返回策略；
-    保护模式下主要看eflags的14号和17号位的值，但是与我们遇到的问题并没有什么直接的关系。因为经调试，出问题的时候这两个值都是0.
-    那么，都是0的情况下，iret的行为如下：
-
-    */
     call irq_handle
     addl $4, %esp
 
-    # Restore segment registers (saved before pusha)
+    # -------------------------------------------------------
+    # Check if we need to switch tasks BEFORE restoring regs.
+    # ESP still has the full interrupt frame on the stack:
+    #   [saved DS][pusha regs..][int_no][err_code][EIP][CS][EFLAGS]
+    # Saving ESP now means we can later restore using the same
+    # popa + iret sequence, regardless of whether the task was
+    # interrupted or is starting for the first time.
+    # -------------------------------------------------------
+    movl task_to_switch, %eax
+    testl %eax, %eax
+    jz 1f  # No switch, go to normal return
+
+    # Save current tasks ESP (full frame still on stack)
+    movl current, %ecx
+    testl %ecx, %ecx
+    jz 2f
+    movl %esp, 16(%ecx)  # current->context.esp = ESP
+2:
+    # Update current pointer
+    movl %eax, current
+
+    # Update TSS esp0 for the new task
+    movl 8(%eax), %ecx     # task->kernel_stack
+    addl 12(%eax), %ecx    # + kernel_stack_size = stack top
+    pushl %ecx
+    pushl $0x10             # KERNEL_DS
+    call tss_set_kernel_stack
+    addl $8, %esp
+
+    # Load new task's stack (has same interrupt-frame layout)
+    movl current, %eax      # reload (C call may clobber %eax)
+    movl 16(%eax), %esp
+
+    # Clear the switch flag
+    movl $0, task_to_switch
+
+    # Fall through to common restore path
+
+1:  # ---- Common restore path ----
+    # Restore segment registers
     popl %ebx
     mov %bx, %ds
     mov %bx, %ss
@@ -192,33 +221,6 @@ common_irq:
     # Restore general registers
     popa
     addl $8, %esp  # Remove interrupt number and error code
-
-    # Check if we need to switch tasks after interrupt return
-    movl task_to_switch, %eax
-    testl %eax, %eax
-    jz 1f  # If no task to switch, return normally
-
-    # We have a task to switch to - do it inline
-    # Save current task ESP first
-    movl %esp, %edx
-    movl current, %ecx
-    testl %ecx, %ecx
-    jz 2f  # If no current task, skip saving
-    movl %edx, 16(%ecx)  # Save ESP to current->context.esp
-2:
-    # Now switch to new task
-    movl 16(%eax), %esp  # Load new task ESP
-    popl %eax  # Pop entry/ret_addr to EAX
-    popl %ebx  # Restore EBX
-    popl %ebp  # Restore EBP
-    popl %edi  # Restore EDI
-    popl %esi  # Restore ESI
-    popfl  # Restore EFLAGS
-
-
-
-# Return from interrupt normally
-1:
     iret
 IRQ_HANDLES 32
 IRQ_HANDLES 33

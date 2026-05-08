@@ -13,6 +13,7 @@ _Noreturn void idle() {
     printk("idle: Idle task started\n");
 
     while (1) {
+        printk("test: idle: hello? ................\n");
         // Run scheduler to check for task switches
         // This is called after timer interrupts set time_slice = 0
         schedule();

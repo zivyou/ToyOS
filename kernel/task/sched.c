@@ -19,12 +19,21 @@ volatile task_t* task_to_switch = NULL;
  * Creates the idle task (PID 0) and switches to it.
  * After this function returns, the system is in scheduling mode.
  */
+
+void test_entry(void) {
+    while (1) {
+        printk("test_entry: hello? \n");
+        hlt();
+    }
+}
 void scheduler_init(void) {
     printk("scheduler_init: Round-Robin scheduler initialized with time slice %d\n",
            DEFAULT_TIME_SLICE);
 
     // Create idle task as PID 0 (the system's guard task)
     idle_task = task_create(idle, 1);
+
+    task_t* test_task = task_create(test_entry, 1);
 
     if (!idle_task) {
         printk("scheduler_init: FATAL - Failed to create idle task!\n");
@@ -95,8 +104,9 @@ void schedule(void) {
             return;
         }
 
-        // Time slice exhausted, reset it
+        // Time slice exhausted, reset it and mark as ready
         current->time_slice = DEFAULT_TIME_SLICE;
+        current->state = TASK_READY;
     }
 
     // Pick next task
@@ -109,11 +119,14 @@ void schedule(void) {
     }
 
     if (next != current) {
-        // Set task to switch to - will be handled after interrupt restore
+        next->state = TASK_RUNNING;
+        // Set task to switch to - will be handled in common_irq before popa
         printk("schedule: Will switch from task %d to task %d\n",
                current ? current->pid : 0, next->pid);
         task_to_switch = next;
     } else {
+        // Only current task is available, keep it running
+        next->state = TASK_RUNNING;
         task_to_switch = NULL;
     }
 }

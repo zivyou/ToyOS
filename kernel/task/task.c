@@ -78,27 +78,42 @@ task_t* task_create(void (*entry)(void), uint32_t is_kernel_task) {
         return NULL;
     }
 
-    // Pre-stack context data for task switching
-    // Stack layout (from low to high address, stack grows down):
+    // Pre-stack interrupt frame for task switching.
+    // Layout matches what common_irq pushes / iret expects:
     //
-    //   entry      - Entry point address for jmp
-    //   EBX        - Saved EBX (callee-saved)
-    //   EBP        - Saved EBP (callee-saved)
-    //   EDI        - Saved EDI (callee-saved)
-    //   ESI        - Saved ESI (callee-saved)
-    //   EFLAGS     - Saved EFLAGS (IF=1, interrupts enabled)
-    //
-    // ESP points to entry when task is ready to run
+    //   High address (stack base + KERNEL_STACK_SIZE)
+    //   EFLAGS       ← iret pops this
+    //   CS           ← iret pops this
+    //   EIP          ← iret pops this (= entry point)
+    //   error_code   ← addl $8 removes this
+    //   int_no       ← addl $8 removes this
+    //   pusha frame  ← popa restores (EAX,ECX,EDX,EBX,ESP,EBP,ESI,EDI)
+    //   saved DS     ← popl %ebx then mov %bx,%ds etc.
+    //   Low address  ← ESP points here
 
     uint32_t *stack_top = (uint32_t*)(task->kernel_stack + KERNEL_STACK_SIZE);
 
-    // Saved registers (must match switch_task push order)
-    *(--stack_top) = 0x202;            // EFLAGS (IF=1, IOPL=0 - interrupts enabled)
-    *(--stack_top) = 0;                // ESI
+    // IRET frame
+    *(--stack_top) = 0x202;            // EFLAGS (IF=1)
+    *(--stack_top) = 0x08;             // CS (kernel code segment)
+    *(--stack_top) = (uint32_t)entry;  // EIP (entry point)
+
+    // IRQ handler pushes
+    *(--stack_top) = 0;                // error_code
+    *(--stack_top) = 0;                // int_no
+
+    // pusha frame (order: EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI)
     *(--stack_top) = 0;                // EDI
+    *(--stack_top) = 0;                // ESI
     *(--stack_top) = 0;                // EBP
+    *(--stack_top) = 0;                // ESP (ignored by popa)
     *(--stack_top) = 0;                // EBX
-    *(--stack_top) = (uint32_t)entry;  // Entry point (acts like ret_addr)
+    *(--stack_top) = 0;                // EDX
+    *(--stack_top) = 0;                // ECX
+    *(--stack_top) = 0;                // EAX
+
+    // Saved DS segment
+    *(--stack_top) = 0x10;             // DS = kernel data segment
 
     task->context.esp = (uint32_t)stack_top;
 
@@ -183,45 +198,30 @@ task_state_t task_get_state(task_t *task) {
 void switch_task(task_t * task) {
     if (!task || task == current) return;
 
-    // Use call to push return address onto stack before saving context
-    __asm__ volatile("call 1f\n1:");
+    // Only used for the initial switch in scheduler_init().
+    // No need to save old context — scheduler_init never returns.
 
-    // Save current task state
-    if (current) {
-        task_set_state(current, TASK_READY);
-
-        __asm__ volatile(
-            "pushfl\n"          // Push EFLAGS (first, so it's last to be popped)
-            "pushl %%esi\n"     // Push ESI
-            "pushl %%edi\n"     // Push EDI
-            "pushl %%ebp\n"     // Push EBP
-            "pushl %%ebx\n"     // Push EBX (last before ret_addr)
-            "movl %%esp, %0\n"  // Save ESP
-            : "=m" (current->context.esp)
-            :
-            : "memory"
-        );
-    }
-
-    // Switch to new task
     task_set_state(task, TASK_RUNNING);
     current = task;
 
-    // Restore new task context and jump to entry point
-    // Stack layout for first-run tasks: [entry][EBX][EBP][EDI][ESI][EFLAGS]
-    // Stack layout for already-run tasks: [ret_addr][EBX][EBP][EDI][ESI][EFLAGS]
-    // ESP points to entry/ret_addr
+    // Update TSS esp0
+    tss_set_kernel_stack(0x10, task->kernel_stack + task->kernel_stack_size);
+
+    // Restore from interrupt frame layout (same as common_irq restore path)
     __asm__ volatile(
-        "movl %0, %%esp\n"  // Load new task's ESP (points to entry/ret_addr)
-        "popl %%eax\n"      // Pop entry/ret_addr into EAX
-        "popl %%ebx\n"      // Restore EBX
-        "popl %%ebp\n"      // Restore EBP
-        "popl %%edi\n"      // Restore EDI
-        "popl %%esi\n"      // Restore ESI
-        "popfl\n"           // Restore EFLAGS
-        "jmp *%%eax\n"      // Jump to entry/ret_addr
+        "movl %0, %%esp\n"     // Load new task's ESP
+        "popl %%ebx\n"         // Pop saved DS
+        "mov %%bx, %%ds\n"
+        "mov %%bx, %%ss\n"
+        "mov %%bx, %%es\n"
+        "mov %%bx, %%fs\n"
+        "mov %%bx, %%gs\n"
+        "popa\n"               // Restore all general registers
+        "addl $8, %%esp\n"     // Remove int_no and error_code
+        "iret\n"               // Pop EIP, CS, EFLAGS → jump to entry
         :
         : "r" (task->context.esp)
-        : "eax", "memory"
+        : "memory"
     );
+    __builtin_unreachable();
 }
